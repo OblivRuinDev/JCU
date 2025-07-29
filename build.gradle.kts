@@ -92,7 +92,7 @@ val buildTool = project(":build-tool") {
     }
 }
 
-val unsafe = project(":unsafe") {
+val unsafe = project(":jcu-unsafe") {
     description = "Deep access to JDK"
 
     dependencies {

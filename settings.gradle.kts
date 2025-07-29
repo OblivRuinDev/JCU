@@ -16,4 +16,4 @@
 // limitations under the License.
 rootProject.name = "JCU"
 
-include("jcu-core", "jcu-helper", "jcu-asm", "unsafe", "build-tool", "build-api")
+include("jcu-core", "jcu-helper", "jcu-asm", "jcu-unsafe", "build-tool", "build-api")

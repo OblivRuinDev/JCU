@@ -77,7 +77,6 @@ public class ClassFileWriter implements IRawClassVisitor, IConstantPool {//todo:
      * cp_info  constant_pool[constant_pool_count-1];</pre>
      */
     protected final ByteArray body     = new ByteArray(75);
-    // Contain:
 
 
     /**
@@ -119,6 +118,14 @@ public class ClassFileWriter implements IRawClassVisitor, IConstantPool {//todo:
         return cpInfo.length;
     }
 
+    /**
+     * Returns the tag byte of the constant pool entry at the specified index,
+     * or a negative value to indicate an invalid constant slot.
+     *
+     * @param index {@inheritDoc}
+     * @return {@inheritDoc}
+     * @throws IndexOutOfBoundsException {@inheritDoc}
+     */
     @Override
     public final int tag(int index) {
         return head.data[cpInfo.data[index]];
