@@ -17,11 +17,9 @@
 package dev.oblivruin.jcu;
 
 import dev.oblivruin.jcu.util.ByteArray;
-import dev.oblivruin.jcu.visit.raw.IAttributable;
-import dev.oblivruin.jcu.visit.raw.IRawAttributeVisitor;
-import dev.oblivruin.jcu.visit.raw.IRawCompAttributeVisitor;
+import dev.oblivruin.jcu.visit.raw.IRawAttributable;
 
-abstract class AttrContainer implements IAttributable {
+abstract class AttrContainer implements IRawAttributable {
     protected final ByteArray array;
     protected final int off;
     protected int count = 0;
@@ -29,6 +27,7 @@ abstract class AttrContainer implements IAttributable {
     protected AttrContainer(ByteArray array) {
         this.array = array;
         this.off = array.length;
+        //reserve 2bits for attributes_count
         array.length+=2;
     }
 
@@ -40,9 +39,9 @@ abstract class AttrContainer implements IAttributable {
     }
 
     @Override
-    public void visitAttribute(int nameIndex, int valueIndex) {
+    public void visitAttribute(int nameIndex, int value) {
         ++count;
-        array.put242(nameIndex, 2, valueIndex);
+        array.put242(nameIndex, 2, value);
     }
 
     @Override

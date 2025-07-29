@@ -17,5 +17,12 @@
 
 package dev.oblivruin.jcu.visit.raw;
 
-public interface IRawFieldVisitor extends IAttributable {
+/**
+ * This interface provides low-level primitives for interacting with {@code field_info} structure.
+ * <br>
+ * This API is unsafe; all operations must comply with the API contract.
+ *
+ * @author OblivRuinDev
+ */
+public interface IRawFieldVisitor extends IRawAttributable {
 }

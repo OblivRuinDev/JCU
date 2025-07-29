@@ -16,10 +16,54 @@
 // limitations under the License.
 package dev.oblivruin.jcu.visit.raw;
 
-public interface IRawCompAttributeVisitor extends IRawAttributeVisitor, IAttributable {
+/**
+ * This interface provides low-level primitives for building composite attribute structures
+ * (which may contain nested attributes).
+ * <br>
+ * This API is unsafe; all operations must comply with the API contract.
+ *
+ * @author OblivRuinDev
+ */
+public interface IRawCompAttributeVisitor extends IRawAttributeVisitor, IRawAttributable {
+    @Override
+    void write(byte b);
+
+    @Override
+    void write(byte[] bytes, int off, int len);
+
+    @Override
+    void writeU2(int v);
+
+    @Override
+    void writeU4(int v);
+
     /**
-     * Notify this visitor will start visiting attributes,
-     * must called before call {@link #visitEmptyAttribute}.
+     * Signals the start of nested attributes visitation.
+     * <p>
+     * <b>Must be called exactly once before visiting any nested attributes.</b>
      */
     void visitAttributes();
+
+    @Override
+    void visitAttribute(int nameIndex, int off, int len, byte[] data);
+
+    @Override
+    void visitAttribute(int nameIndex, int value);
+
+    @Override
+    IRawAttributeVisitor visitAttribute(int nameIndex);
+
+    @Override
+    void visitEmptyAttribute(int nameIndex);
+
+    @Override
+    IRawCompAttributeVisitor visitCompAttribute(int nameIndex);
+
+    /**
+     * Signals the end of composite attribute visitation.
+     * <p>
+     * <b>Must be called exactly once after all content and nested attributes.</b>
+     */
+    @Override
+    void visitEnd();
 }

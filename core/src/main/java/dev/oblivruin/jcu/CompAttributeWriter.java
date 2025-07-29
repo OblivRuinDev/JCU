@@ -20,7 +20,7 @@ import dev.oblivruin.jcu.util.ByteArray;
 import dev.oblivruin.jcu.visit.raw.IRawCompAttributeVisitor;
 
 public class CompAttributeWriter extends AttributeWriter implements IRawCompAttributeVisitor {
-    protected short count = 0;
+    protected int count = 0;
     protected int off1;
     public CompAttributeWriter(ByteArray array) {
         super(array);
@@ -30,6 +30,7 @@ public class CompAttributeWriter extends AttributeWriter implements IRawCompAttr
     public void visitAttributes() {
         this.off1 = array.length;
         array.ensureFree(2);
+        //reserve for attributes_count
         array.length+=2;
     }
 
@@ -41,9 +42,9 @@ public class CompAttributeWriter extends AttributeWriter implements IRawCompAttr
     }
 
     @Override
-    public void visitAttribute(int nameIndex, int valueIndex) {
+    public void visitAttribute(int nameIndex, int value) {
         ++count;
-        array.put242(nameIndex, 2, valueIndex);
+        array.put242(nameIndex, 2, value);
     }
 
     @Override

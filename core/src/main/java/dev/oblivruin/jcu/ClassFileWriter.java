@@ -51,35 +51,55 @@ public class ClassFileWriter implements IRawClassVisitor, IConstantPool {//todo:
      */
     protected final IntArray cpInfo    = new IntArray();
 
+    /**
+     * The data structure is:
+     * <pre class="screen">
+     * u4       magic;
+     * u2       minor_version;
+     * u2       major_version;
+     * u2       constant_pool_count;
+     * cp_info  constant_pool[constant_pool_count-1];</pre>
+     */
     protected final ByteArray head     = new ByteArray() {
         @Override
         protected int newSize(int expected) {
-            return Math.max(expected, this.length > 10000 ? this.data.length + 3200 : this.data.length * 2);
+            return Math.max(expected, this.length > 10000 ? this.data.length + 3200 : this.data.length * 2);// avoid data inflation
         }
     };
-    // Contain:
-    //  u4       magic;
-    //  u2       minor_version;
-    //  u2       major_version;
-    //  u2       constant_pool_count;
-    //  cp_info  constant_pool[constant_pool_count-1];
 
+
+    /**
+     * The data structure is:
+     * <pre class="screen">
+     * u4       magic;
+     * u2       minor_version;
+     * u2       major_version;
+     * u2       constant_pool_count;
+     * cp_info  constant_pool[constant_pool_count-1];</pre>
+     */
     protected final ByteArray body     = new ByteArray(75);
     // Contain:
-    //  u2           access_flags;
-    //  u2           this_class;
-    //  u2           super_class;
-    //  u2           interfaces_count;
-    //  u2           interfaces[interfaces_count];
-    //  u2           fields_count;
-    //  field_info   fields[fields_count];
-    //  u2           methods_count;
-    //  method_info  methods[methods_count];
 
+
+    /**
+     * The data structure is:
+     * <pre class="screen">
+     * u2           access_flags;
+     * u2           this_class;
+     * u2           super_class;
+     * u2           interfaces_count;
+     * u2           interfaces[interfaces_count];
+     * u2           fields_count;
+     * field_info   fields[fields_count];</pre>
+     */
+    protected final ByteArray meth = new ByteArray(0);
+
+    /**
+     * The data structure is:
+     * <pre class="screen">
+     * method_info  attributes[attribute_count];</pre>
+     */
     protected final ByteArray attr = new ByteArray(100);
-    // Contain:
-    //  u2              attributes_count;
-    //  attribute_info  attributes[attributes_count];
 
 
     public final AttrStrMap attrMap = new AttrStrMap();
@@ -396,7 +416,7 @@ public class ClassFileWriter implements IRawClassVisitor, IConstantPool {//todo:
         // body.length is 0
         if (interfaceCIndexes == null || interfaceCIndexes.length == 0) {
             body.set2(6, 0);
-            pos =
+            posF =
                     (body.length = 6);
         } else {
             int inteCount = interfaceCIndexes.length;
@@ -409,7 +429,7 @@ public class ClassFileWriter implements IRawClassVisitor, IConstantPool {//todo:
                 d[++pointer] = (byte) (v >>> 8);
                 d[++pointer] = (byte) v;
             }
-            pos =
+            posF =
                     (body.length = ++pointer);
         }
         h_(version, access, thisCIndex, superCIndex);
@@ -422,36 +442,26 @@ public class ClassFileWriter implements IRawClassVisitor, IConstantPool {//todo:
         body.set2(4, superCIndex);
     }
 
-    /**
-     * 1st usage: position for fields_count(set in {@link #visit}).
-     * <br>
-     * 2nd usage: position for methods_count(set in {@link #visitMethods()}).
-     */
-    protected int pos;
+    //@Stable
+    protected int posF;
     // Internal counter
-    protected int count1 = 0;
+    protected int countF = 0;
+    protected int countM = 0;
     @Override
     public final FieldWriter visitField(int access, int nameIndex, int descIndex) {
-        ++count1;
+        ++countF;
         body.put222(access, nameIndex, descIndex);
         return new FieldWriter(body);
     }
 
     @Override
-    public void visitMethods() {
-        body.set2(pos, count1);// Fields count
-        count1 = 0;
-        pos = body.length;
-    }
-
-    @Override
     public final MethodWriter visitMethod(int access, int nameIndex, int descIndex) {
-        count1++;
-        body.put222(access, nameIndex, descIndex);
-        return new MethodWriter(body);
+        ++countM;
+        meth.put222(access, nameIndex, descIndex);
+        return new MethodWriter(meth);
     }
 
-    int countA = 0;
+    protected int countA = 0;
 
     @Override
     public final void visitAttribute(int nameIndex, int off, int len, byte[] data) {
@@ -461,9 +471,9 @@ public class ClassFileWriter implements IRawClassVisitor, IConstantPool {//todo:
     }
 
     @Override
-    public final void visitAttribute(int nameIndex, int valueIndex) {
+    public final void visitAttribute(int nameIndex, int value) {
         ++countA;
-        attr.put242(nameIndex, 2, valueIndex);
+        attr.put242(nameIndex, 2, value);
     }
 
     @Override
@@ -489,25 +499,58 @@ public class ClassFileWriter implements IRawClassVisitor, IConstantPool {//todo:
     @Override
     public final void visitEnd() {
         head.set2(8, cpInfo.length);//  Constant Count
-        body.set2(pos, count1);// Method Count
-        attr.set2(0, countA);// Attribute Count
+        body.set2(posF, countF);// Field Count
     }
 
     public final byte[] toByteArray() {
         int l1 = head.length;
         int l2 = body.length;
-        int l3 = attr.length;
-        byte[] ret = new byte[l1 + l2 + l3];
+        int l3 = meth.length;
+        int l4 = attr.length;
+        byte[] ret = new byte[l1 + l2 + l3 + 4/*for methods_count and attribute count*/ + l4];
         System.arraycopy(head.data, 0, ret, 0, l1);
         System.arraycopy(body.data, 0, ret, l1, l2);
-        System.arraycopy(attr.data, 0, ret, l1 + l2, l3);
+        l1+=l2;
+        if (l3 == 0) {
+            ret[l1] = 0;
+            ret[++l1] = 0;
+            ++l1;
+        } else {
+            ret[l1] = (byte) (countM >>> 8);
+            ret[++l1] = (byte) countM;
+            System.arraycopy(meth.data, 0, ret, ++l1, l3);
+            l1+=l3;
+        }
+        if (l4 == 0) {
+            ret[l1] = 0;
+            ret[++l1] = 0;
+        } else {
+            ret[l1] = (byte) (countA >>> 8);
+            ret[++l1] = (byte)  countA;
+            System.arraycopy(attr.data, 0, ret, ++l1, l4);
+        }
         return ret;
     }
 
     public final void writeTo(OutputStream output) throws IOException {
         output.write(head.data, 0, head.length);
         output.write(body.data, 0, body.length);
-        output.write(attr.data, 0, attr.length);
+        if (countM == 0) {
+            output.write(0);
+            output.write(0);
+        } else {
+            output.write(countM >>> 8);
+            output.write(countM);
+            output.write(meth.data, 0, meth.length);
+        }
+        if (countA == 0) {
+            output.write(0);
+            output.write(0);
+        } else {
+            output.write(countA >>> 8);
+            output.write(countA);
+            output.write(attr.data, 0, attr.length);
+        }
     }
 
     public final class AttrStrMap {

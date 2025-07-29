@@ -39,8 +39,8 @@ public class AttributeWriter implements IRawAttributeVisitor {
     }
 
     @Override
-    public void writeN(byte[] bytes) {
-        array.add(bytes);
+    public void write(byte[] bytes, int off, int len) {
+        array.add(bytes, off, len);
     }
 
     @Override

@@ -32,8 +32,15 @@ public class ByteArray extends Array {
         this.length = freeOff;
     }
     public ByteArray(int size) {
-        this.data = new byte[size];
+        if (size > 0) {
+            this.data = new byte[size];
+        } else if (size == 0) {
+            this.data = E;
+        } else {
+            throw new IndexOutOfBoundsException();
+        }
     }
+    private static final byte[] E = new byte[0];
 
     /**
      * Write Modified UTF-8 at current {@link #length},
