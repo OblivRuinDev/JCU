@@ -17,11 +17,12 @@
 
 package dev.oblivruin.jcu;
 
-import dev.oblivruin.jcu.util.ByteArray;
-import dev.oblivruin.jcu.visit.raw.IRawMethodVisitor;
-
-public class MethodWriter extends AttrContainer implements IRawMethodVisitor {
-    public MethodWriter(ByteArray array) {
-        super(array);
-    }
+/**
+ * This interface provides low-level primitives for interacting with {@code field_info} structure.
+ * <br>
+ * This API is unsafe; all operations must comply with the API contract.
+ *
+ * @author OblivRuinDev
+ */
+public interface IRawFieldVisitor extends IRawAttributable {
 }

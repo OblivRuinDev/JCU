@@ -17,7 +17,6 @@
 package dev.oblivruin.jcu;
 
 import dev.oblivruin.jcu.util.ByteArray;
-import dev.oblivruin.jcu.visit.raw.IRawAttributable;
 
 abstract class AttrContainer implements IRawAttributable {
     protected final ByteArray array;

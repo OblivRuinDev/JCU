@@ -17,7 +17,6 @@
 package dev.oblivruin.jcu;
 
 import dev.oblivruin.jcu.util.ByteArray;
-import dev.oblivruin.jcu.visit.raw.IRawCompAttributeVisitor;
 
 public class CompAttributeWriter extends AttributeWriter implements IRawCompAttributeVisitor {
     protected int count = 0;

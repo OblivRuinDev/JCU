@@ -51,11 +51,34 @@ val buildApi = project(":build-api") {
     description = "Api for custom build"
 }
 
-val core = project(":core") {
+val core = project(":jcu-core") {
     description = "Core API for classfile"
 
     dependencies {
         api(buildApi)
+    }
+
+    init1()
+}
+
+val helper = project(":jcu-helper") {
+    description = "Core API for classfile"
+
+    dependencies {
+        api(buildApi)
+        api(core)
+    }
+
+    init1()
+}
+
+val asm = project(":jcu-asm") {
+    description = "Core API for classfile"
+
+    dependencies {
+        api(buildApi)
+        api(core)
+        api(helper)
     }
 
     init1()

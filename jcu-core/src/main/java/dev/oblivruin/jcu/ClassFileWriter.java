@@ -20,7 +20,6 @@ import dev.oblivruin.jcu.constant.AttributeNames;
 import dev.oblivruin.jcu.constant.Tag;
 import dev.oblivruin.jcu.util.ByteArray;
 import dev.oblivruin.jcu.util.IntArray;
-import dev.oblivruin.jcu.visit.raw.IRawClassVisitor;
 
 import java.io.IOException;
 import java.io.OutputStream;

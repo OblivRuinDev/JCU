@@ -15,14 +15,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package dev.oblivruin.jcu.visit.raw;
+package dev.oblivruin.jcu;
 
-/**
- * This interface provides low-level primitives for interacting with {@code field_info} structure.
- * <br>
- * This API is unsafe; all operations must comply with the API contract.
- *
- * @author OblivRuinDev
- */
-public interface IRawFieldVisitor extends IRawAttributable {
+import dev.oblivruin.jcu.util.ByteArray;
+
+public class FieldWriter extends AttrContainer implements IRawFieldVisitor {
+    public FieldWriter(ByteArray array) {
+        super(array);
+    }
 }

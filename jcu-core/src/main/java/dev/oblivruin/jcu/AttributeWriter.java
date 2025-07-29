@@ -17,7 +17,6 @@
 package dev.oblivruin.jcu;
 
 import dev.oblivruin.jcu.util.ByteArray;
-import dev.oblivruin.jcu.visit.raw.IRawAttributeVisitor;
 
 public class AttributeWriter implements IRawAttributeVisitor {
     final ByteArray array;

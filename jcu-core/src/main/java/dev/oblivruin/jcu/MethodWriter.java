@@ -15,14 +15,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package dev.oblivruin.jcu.visit.raw;
+package dev.oblivruin.jcu;
 
-/**
- * This interface provides low-level primitives for interacting with {@code method_info} structure.
- * <br>
- * This API is unsafe; all operations must comply with the API contract.
- *
- * @author OblivRuinDev
- */
-public interface IRawMethodVisitor extends IRawAttributable {
+import dev.oblivruin.jcu.util.ByteArray;
+
+public class MethodWriter extends AttrContainer implements IRawMethodVisitor {
+    public MethodWriter(ByteArray array) {
+        super(array);
+    }
 }
