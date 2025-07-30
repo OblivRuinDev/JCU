@@ -48,7 +48,7 @@ public class ClassFileWriter implements IRawClassVisitor, IConstantPool {//todo:
      * Point to every constant tag position in {@link #head}.
      * @apiNote for unfree slot, just use {@code 0}, which the tag value is -54.
      */
-    protected final IntArray cpInfo    = new IntArray();
+    protected final IntArray cpInfo = new IntArray();
 
     /**
      * The data structure is:
@@ -59,25 +59,12 @@ public class ClassFileWriter implements IRawClassVisitor, IConstantPool {//todo:
      * u2       constant_pool_count;
      * cp_info  constant_pool[constant_pool_count-1];</pre>
      */
-    protected final ByteArray head     = new ByteArray() {
+    protected final ByteArray head = new ByteArray() {
         @Override
         protected int newSize(int expected) {
             return Math.max(expected, this.length > 10000 ? this.data.length + 3200 : this.data.length * 2);// avoid data inflation
         }
     };
-
-
-    /**
-     * The data structure is:
-     * <pre class="screen">
-     * u4       magic;
-     * u2       minor_version;
-     * u2       major_version;
-     * u2       constant_pool_count;
-     * cp_info  constant_pool[constant_pool_count-1];</pre>
-     */
-    protected final ByteArray body     = new ByteArray(75);
-
 
     /**
      * The data structure is:
@@ -90,23 +77,32 @@ public class ClassFileWriter implements IRawClassVisitor, IConstantPool {//todo:
      * u2           fields_count;
      * field_info   fields[fields_count];</pre>
      */
+    protected final ByteArray body = new ByteArray(75);
+
+    /**
+     * The data structure is:
+     * <pre class="screen">
+     * method_info   methods[methods_count];</pre>
+     */
     protected final ByteArray meth = new ByteArray(0);
 
     /**
      * The data structure is:
      * <pre class="screen">
-     * method_info  attributes[attribute_count];</pre>
+     * attribute_info  attributes[attribute_count];</pre>
      */
     protected final ByteArray attr = new ByteArray(100);
 
-
+    /**
+     * Cache for frequently used attribute name indexes in the constant pool.
+     */
     public final AttrStrMap attrMap = new AttrStrMap();
-    final HashMap<String, Integer> utf8Map = new HashMap<>();
+    protected final HashMap<String, Integer> utf8Map = new HashMap<>();
 
     {
         // magic number
         head.set4(0, 0xCAFEBABE);
-        // skip  minor, major, and constant count
+        // skip  minor, major, and constant pool count
         head.length = 10;
 
         cpInfo.data[0] = -1;
