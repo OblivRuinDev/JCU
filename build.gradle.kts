@@ -58,6 +58,10 @@ val core = project(":jcu-core") {
     dependencies.api(buildApi)
 
     set(arrayOf("dev/oblivruin/jcu", "dev/oblivruin/jcu/constant", "dev/oblivruin/jcu/util"), emptyArray(), 9)
+
+    tasks.named<JavaCompile>("compileV9Java") {
+        options.compilerArgs.add("--add-exports=java.base/jdk.internal.vm.annotation=ALL-UNNAMED")
+    }
 }
 
 val helper = project(":jcu-helper") {
