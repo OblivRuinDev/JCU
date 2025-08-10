@@ -32,7 +32,7 @@ public final class BytesUtil {
     public static final VarHandle v8 = MethodHandles.byteArrayViewVarHandle(long[].class, ByteOrder.BIG_ENDIAN);
     @ForceInline
     public static void putShort(byte[] bytes, int off, int v) {
-        v2.set(bytes, off, v);
+        v2.set(bytes, off, (short) v);
     }
     @ForceInline
     public static void putShort(byte[] bytes, int off, short v) {
@@ -40,7 +40,7 @@ public final class BytesUtil {
     }
     @ForceInline
     public static int getShort(byte[] bytes, int off) {
-        return (int) v2.get(bytes, off);
+        return (short) v2.get(bytes, off);
     }
     @ForceInline
     public static int getU2(byte[] bytes, int off) {
