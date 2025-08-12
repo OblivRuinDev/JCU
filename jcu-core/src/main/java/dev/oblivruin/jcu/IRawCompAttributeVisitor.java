@@ -17,10 +17,10 @@
 package dev.oblivruin.jcu;
 
 /**
- * This interface provides low-level primitives for building composite attribute structures
- * (which may contain nested attributes).
+ * Provides low-level primitives for building composite attribute structures
+ * (attributes that may contain attributes).
  * <br>
- * This API is unsafe; all operations must comply with the API contract.
+ * This API is unsafe and requires strict contract compliance.
  *
  * @author OblivRuinDev
  */
@@ -38,9 +38,11 @@ public interface IRawCompAttributeVisitor extends IRawAttributeVisitor, IRawAttr
     void writeU4(int v);
 
     /**
-     * Signals the start of nested attributes visitation.
+     * Signals the start visiting attributes section.
      * <p>
-     * <b>Must be called exactly once before visiting any nested attributes.</b>
+     * <b>Contract:</b>
+     * Optional if no attributes will be written.
+     * If called, must be invoked exactly once before visiting any attributes.
      */
     void visitAttributes();
 
@@ -51,10 +53,10 @@ public interface IRawCompAttributeVisitor extends IRawAttributeVisitor, IRawAttr
     void visitAttribute(int nameIndex, int value);
 
     @Override
-    IRawAttributeVisitor visitAttribute(int nameIndex);
+    void visitEmptyAttribute(int nameIndex);
 
     @Override
-    void visitEmptyAttribute(int nameIndex);
+    IRawAttributeVisitor visitAttribute(int nameIndex);
 
     @Override
     IRawCompAttributeVisitor visitCompAttribute(int nameIndex);
@@ -62,7 +64,7 @@ public interface IRawCompAttributeVisitor extends IRawAttributeVisitor, IRawAttr
     /**
      * Signals the end of composite attribute visitation.
      * <p>
-     * <b>Must be called exactly once after all content and nested attributes.</b>
+     * <b>Contract:</b> Must be called exactly once after all content and attributes.
      */
     @Override
     void visitEnd();

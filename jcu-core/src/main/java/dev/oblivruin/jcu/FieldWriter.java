@@ -16,8 +16,13 @@
 // limitations under the License.
 package dev.oblivruin.jcu;
 
-import dev.oblivruin.jcu.util.ByteArray;
+import dev.oblivruin.jcu.misc.ByteArray;
 
+/**
+ * A low-level writer for building the content of the field.
+ *
+ * @author OblivRuinDev
+ */
 public class FieldWriter extends AttrContainer implements IRawFieldVisitor {
     public FieldWriter(ByteArray array) {
         super(array);

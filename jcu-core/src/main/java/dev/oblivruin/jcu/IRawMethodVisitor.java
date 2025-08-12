@@ -17,9 +17,9 @@
 package dev.oblivruin.jcu;
 
 /**
- * This interface provides low-level primitives for interacting with {@code method_info} structure.
+ * Provides low-level primitives for building {@code method_info} structure.
  * <br>
- * This API is unsafe; all operations must comply with the API contract.
+ * This API is unsafe and requires strict contract compliance.
  *
  * @author OblivRuinDev
  */

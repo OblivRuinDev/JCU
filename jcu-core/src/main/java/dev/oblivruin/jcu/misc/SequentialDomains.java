@@ -14,7 +14,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package dev.oblivruin.jcu.util;
+package dev.oblivruin.jcu.misc;
 
 import java.util.AbstractSet;
 import java.util.Iterator;
@@ -269,7 +269,7 @@ public class SequentialDomains<T extends SequentialDomains.Domain<T>> extends Ab
      * @param <T> the type of elements in this
      * @author OblivRuinDev
      */
-    public static class Domain<T extends Domain<T>> extends dev.oblivruin.jcu.util.Domain implements Iterable<T> {
+    public static class Domain<T extends Domain<T>> extends dev.oblivruin.jcu.misc.Domain implements Iterable<T> {
         T next = null;
         T previous = null;
 

@@ -16,44 +16,69 @@
 // limitations under the License.
 package dev.oblivruin.jcu;
 
-import dev.oblivruin.jcu.util.ByteArray;
+import dev.oblivruin.jcu.misc.ByteArray;
+import dev.oblivruin.jcu.misc.BytesUtil;
 
+/**
+ * A low-level writer for building the content of the attribute.
+ * <br>
+ * Automatically manages the {@code attribute_length} by reserving space during construction
+ * and updating it during {@link #visitEnd()}.
+ * Provides methods for writing primitive values and {@link #array} for complex writing.
+ *
+ * @author OblivRuinDev
+ */
 public class AttributeWriter implements IRawAttributeVisitor {
-    final ByteArray array;
-    final int off;
+    /**
+     * The underlying byte array where the attribute's content is stored.
+     * <br>
+     * Direct access allows optimized writing via {@code putX} methods.
+     */
+    public final ByteArray array;
+    /** The start offset of {@code attribute_length} in {@link #array}. */
+    public final int off;
 
     /**
-     * Will auto reserve 4bits for length, also check if need expand array.
+     * Constructs an attribute writer, reserving 4 bytes for the {@code attribute_length}.
+     * <br>
+     * The current {@code array.length} is stored as {@link #off} before advancing the length.
+     *
+     * @param array the byte array used for storage
      */
     public AttributeWriter(ByteArray array) {
-        this.array = array;
-        this.off = array.length;
         array.ensureFree(4);
+        this.off = array.length;
         array.length+=4;
+        this.array = array;
     }
 
     @Override
-    public void write(byte b) {
+    public final void write(byte b) {
         array.add(b);
     }
 
     @Override
-    public void write(byte[] bytes, int off, int len) {
+    public final void write(byte[] bytes, int off, int len) {
         array.add(bytes, off, len);
     }
 
     @Override
-    public void writeU2(int v) {
+    public final void writeU2(int v) {
         array.put2(v);
     }
 
     @Override
-    public void writeU4(int v) {
+    public final void writeU4(int v) {
         array.put4(v);
     }
 
+    /**
+     * Finalizes the attribute by writing the {@code attribute_length} at offset {@link #off}.
+     * <p>
+     * <b>Contract:</b> Must be called exactly once after all write operations.
+     */
     @Override
     public void visitEnd() {
-        array.set4(off, array.length - off - 4);
+        BytesUtil.setInt(array.data, off, array.length - off - 4);
     }
 }

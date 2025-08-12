@@ -22,7 +22,7 @@ package dev.oblivruin.jcu.constant;
  *
  * @see <a href="https://docs.oracle.com/javase/specs/jvms/se9/html/jvms-6.html">jvms-6</a>
  */
-public final class Opcodes {
+public final class Opcodes {//todo
     public static final int IINC = 132; // visitIincInsn
     public static final int I2L = 133; // visitInsn
     public static final int I2F = 134; // -

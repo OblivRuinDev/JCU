@@ -14,48 +14,60 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package dev.oblivruin.jcu.util;
+package dev.oblivruin.jcu.misc;
 
-public final class IntArray extends Array {
+public class IntArray extends Array {
     public int[] data;
     public IntArray() {
         this(80);
     }
     public IntArray(int size) {
-        this.data = new int[size];
+        if (size > 0) {
+            this.data = new int[size];
+        } else if (size == 0) {
+            this.data = E;
+        } else {
+            throw new IndexOutOfBoundsException();
+        }
     }
+    private static final int[] E = new int[0];
     public IntArray(int[] array) {
         this.data = array;
     }
 
-    public void add(int i) {
+    public final void add(int i) {
         ensureFree(1);
         data[length++] = i;
     }
 
-    public void add0(int i) {
+    public final void add0(int i) {
         data[length++] = i;
     }
 
     @Override
-    public void ensureFree(int size) {
+    public final void ensureFree(int size) {
         int i = length + size;
         if (i >= data.length) {
             System.arraycopy(data, 0,
-                    (data = new int[Math.max(i, data.length * 2)]), 0,
+                    (data = new int[newSize(i)]), 0,
                     length);
         }
     }
 
     @Override
-    public boolean tryExpand(int size) {
+    public final boolean tryExpand(int size) {
         int i = length + size;
         if (i >= data.length) {
             System.arraycopy(data, 0,
-                    (data = new int[Math.max(i, data.length * 2)]), 0,
+                    (data = new int[newSize(i)]), 0,
                     length);
             return true;
         }
         return false;
+    }
+
+    @Override
+    protected int newSize(int expected) {
+        return Math.max(expected, data.length * 2);
     }
 }

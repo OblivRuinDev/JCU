@@ -14,8 +14,10 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-/**
- * This package offers an extremely efficient array and collection,
- * but all of these are unsafe.
- */
-package dev.oblivruin.jcu.util;
+package dev.oblivruin.jcu.asm;
+
+public class FieldWriter extends Delegate1<dev.oblivruin.jcu.FieldWriter> implements IFieldVisitor {
+    public FieldWriter(dev.oblivruin.jcu.FieldWriter writer) {
+        super(writer);
+    }
+}

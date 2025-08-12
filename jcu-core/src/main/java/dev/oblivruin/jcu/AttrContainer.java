@@ -16,17 +16,43 @@
 // limitations under the License.
 package dev.oblivruin.jcu;
 
-import dev.oblivruin.jcu.util.ByteArray;
+import dev.oblivruin.jcu.misc.ByteArray;
+import dev.oblivruin.jcu.misc.BytesUtil;
 
-abstract class AttrContainer implements IRawAttributable {
-    protected final ByteArray array;
-    protected final int off;
-    protected int count = 0;
+/**
+ * A low-level writer for building the content of attributes structure.
+ * <br>
+ * Automatically manages the {@code attribute_length} by reserving
+ * space during construction and updating it during {@link #visitEnd()}.
+ * Provides methods for writing primitive values and {@link #array} for complex writing.
+ *
+ * <p>Attributes structure:</p>
+ * <pre class="screen">
+ * {
+ *     u2 attributes_count;
+ *     attribute_info attributes[attributes_count];
+ * }</pre>
+ *
+ * @author OblivRuinDev
+ */
+public class AttrContainer implements IRawAttributable {
+    /** The underlying byte array where the structure's content is stored. */
+    public final ByteArray array;
+    /** The start offset of {@code attribute_length} in {@link #array}. */
+    public final int off;
+    /** The number of attributes ({@code attributes_count}) in this structure. */
+    public int count = 0;
 
+    /**
+     * Constructs an attributes structure writer,
+     * reserving 2 bytes for {@code attributes_count}.
+     *
+     * @param array the byte array used for storage
+     */
     protected AttrContainer(ByteArray array) {
         this.array = array;
+        array.ensureFree(2);
         this.off = array.length;
-        //reserve 2bits for attributes_count
         array.length+=2;
     }
 
@@ -63,7 +89,12 @@ abstract class AttrContainer implements IRawAttributable {
         return new CompAttributeWriter(array);
     }
 
+    /**
+     * Finalizes the attribute by writing the {@code attribute_length} at offset {@link #off}.
+     * <p>
+     * {@inheritDoc}
+     */
     public void visitEnd() {
-        array.set2(off, count);
+        BytesUtil.setShort(array.data, off, count);
     }
 }

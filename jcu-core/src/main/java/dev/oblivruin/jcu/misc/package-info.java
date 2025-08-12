@@ -14,28 +14,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package dev.oblivruin.jcu.util;
-
-public final class CharArray extends Array {
-    public char[] data;
-    public CharArray(int size) {
-        this.data = new char[size];
-    }
-    public CharArray(char[] chars) {
-        this.data = chars;
-    }
-    @Override
-    public void ensureFree(int size) {
-
-    }
-
-    @Override
-    public boolean tryExpand(int size) {
-        return false;
-    }
-
-    @Override
-    protected int newSize(int expected) {
-        return 0;
-    }
-}
+/**
+ * This package offers an extremely efficient array and collection,
+ * but all of these are unsafe.
+ */
+package dev.oblivruin.jcu.misc;

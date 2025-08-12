@@ -23,7 +23,7 @@ plugins {
 }
 
 description = "JCU, a Java Classfile Util which provide access to raw class bytes"
-version = "1.0-SNAPSHOT"
+version = "1.0.0"
 group = "dev.oblivruin.jcu"
 
 javaPlatform { allowDependencies() }
@@ -58,16 +58,16 @@ val core = project(":jcu-core") {
 
     dependencies.api(buildApi)
 
-    set(arrayOf("dev/oblivruin/jcu", "dev/oblivruin/jcu/constant", "dev/oblivruin/jcu/util"), vers = intArrayOf(9))
+    set(arrayOf("dev/oblivruin/jcu", "dev/oblivruin/jcu/constant", "dev/oblivruin/jcu/misc"), vers = intArrayOf(9))
 
     tasks.named<JavaCompile>("compileV9Java") {
         options.compilerArgs.add("--add-exports=java.base/jdk.internal.vm.annotation=ALL-UNNAMED")
     }
 }
 
-val helper = project(":jcu-helper") {
+val util = project(":jcu-util") {
     description = "Provide extra help for check, (de)serialize"
-    group = "dev.oblivruin.jcu.helper"
+    group = "dev.oblivruin.jcu.util"
 
     dependencies {
         api(buildApi)
@@ -94,10 +94,10 @@ val asm = project(":jcu-asm") {
     dependencies {
         api(buildApi)
         api(core)
-        api(helper)
+        api(util)
     }
 
-    set(arrayOf("dev/oblivruin/jcu/asm"), arrayOf(core.group.toString(), helper.group.toString()))
+    set(arrayOf("dev/oblivruin/jcu/asm"), arrayOf(core.group.toString(), util.group.toString()))
 }
 
 val buildTool = project(":build-tool") {

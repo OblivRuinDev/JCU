@@ -16,8 +16,13 @@
 // limitations under the License.
 package dev.oblivruin.jcu;
 
-import dev.oblivruin.jcu.util.ByteArray;
+import dev.oblivruin.jcu.misc.ByteArray;
 
+/**
+ * A low-level writer for building the content of the method.
+ *
+ * @author OblivRuinDev
+ */
 public class MethodWriter extends AttrContainer implements IRawMethodVisitor {
     public MethodWriter(ByteArray array) {
         super(array);

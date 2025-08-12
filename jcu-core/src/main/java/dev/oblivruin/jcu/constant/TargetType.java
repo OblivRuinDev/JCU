@@ -24,6 +24,11 @@ public final class TargetType {//todo: rename for its bad name
      * Target info: type_parameter_target
      * <br>
      * Location: ClassFile
+     * <br>
+     * info structure:
+     * <pre class="screen">type_parameter_target {
+     *     u1 type_parameter_index;
+     * }</pre>
      */
     public static final int CLASS_TYPE_PARA = 0x00;
     /**

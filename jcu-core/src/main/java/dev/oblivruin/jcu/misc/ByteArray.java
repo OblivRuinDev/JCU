@@ -14,7 +14,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package dev.oblivruin.jcu.util;
+package dev.oblivruin.jcu.misc;
 
 import java.util.Arrays;
 
@@ -146,49 +146,22 @@ public class ByteArray extends Array {
         return Math.max(expected, data.length * 2);
     }
 
-    public final void put2_(int value) {
-        data[length] = (byte) (value >>> 8);
-        data[length + 1] = (byte) value;
-        length+=2;
-    }
-
     public final void put2(int value) {
         ensureFree(2);
-        put2_(value);
+        BytesUtil.setShort(this.data, this.length, value);
+        this.length+=2;
     }
 
     public final void put4(int value) {
         ensureFree(4);
-        put4_(value);
-    }
-
-    public final void put4_(int value) {
-        int pointer = this.length;
-        byte[] array = this.data;
-        array[  pointer] = (byte) (value >>> 24);
-        array[++pointer] = (byte) (value >>> 16);
-        array[++pointer] = (byte) (value >>> 8 );
-        array[++pointer] = (byte)  value        ;
-        this.length = pointer + 1;
-    }
-
-    public final void put8_(long value) {
-        int pointer = this.length;
-        byte[] array = this.data;
-        array[  pointer] = (byte) (value >>> 56);
-        array[++pointer] = (byte) (value >>> 48);
-        array[++pointer] = (byte) (value >>> 40);
-        array[++pointer] = (byte) (value >>> 32);
-        array[++pointer] = (byte) (value >>> 24);
-        array[++pointer] = (byte) (value >>> 16);
-        array[++pointer] = (byte) (value >>> 8 );
-        array[++pointer] = (byte)  value        ;
-        this.length = pointer + 1;
+        BytesUtil.setInt(this.data, this.length, value);
+        this.length+=4;
     }
 
     public final void put8(long value) {
         ensureFree(8);
-        put8_(value);
+        BytesUtil.setLong(this.data, this.length, value);
+        this.length+=8;
     }
 
     public final void put4(float value) {
@@ -260,20 +233,6 @@ public class ByteArray extends Array {
         this.length = pointer + 1;
     }
 
-    public final void set2(int index, int value) {
-        byte[] data = this.data;
-        data[index] = (byte) (value >>> 8);
-        data[index + 1] = (byte) value;
-    }
-
-    public final void set4(int index, int value) {
-        byte[] data = this.data;
-        data[  index] = (byte) (value >>> 24);
-        data[++index] = (byte) (value >>> 16);
-        data[++index] = (byte) (value >>> 8 );
-        data[++index] = (byte)  value;
-    }
-
     public final boolean match4(int index, int value) {
         byte[] data = this.data;
         return  data[  index] == (byte) (value >>> 24) &&
@@ -292,20 +251,6 @@ public class ByteArray extends Array {
                 data[++index] == (byte) (value >>> 16) &&
                 data[++index] == (byte) (value >>> 8 ) &&
                 data[++index] == (byte)  value;
-    }
-
-    public final int u2(int index) {
-        byte[] data = this.data;
-        return (data[index] << 8) | (data[++index]);
-    }
-
-    public final int u4(int index) {
-        byte[] data = this.data;
-        return (data[index] << 24) | (data[++index] << 16) | (data[index] << 8) | (data[++index]);
-    }
-
-    public final long u8(int index) {
-        return (long) u4(index) << 32 | u4(index + 4);
     }
 
     public final byte[] toArray() {

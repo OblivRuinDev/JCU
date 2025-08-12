@@ -17,10 +17,10 @@
 package dev.oblivruin.jcu;
 
 /**
- * This interface provides low-level primitives for interacting with
+ * Provides low-level primitives for building
  * bytecodes structures that may contain attributes.
  * <br>
- * This API is unsafe; all operations must comply with the API contract.
+ * This API is unsafe and requires strict contract compliance.
  *
  * @author OblivRuinDev
  */
@@ -82,7 +82,7 @@ public interface IRawAttributable {
     IRawAttributeVisitor visitAttribute(int nameIndex);
 
     /**
-     * Visits a composite attribute that may contain some attributes (e.g. {@code Code}).
+     * Visits a composite attribute that may contain some attributes. (e.g. {@code Code} attribute)
      *
      * @param nameIndex index of a {@code CONSTANT_Utf8_info} entry which represents the attribute name
      * @return visitor for building the composite attribute structure

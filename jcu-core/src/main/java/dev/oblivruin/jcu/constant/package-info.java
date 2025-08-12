@@ -31,7 +31,7 @@
  * </ol>
  *
  * <h3>Exception Case</h3>
- * The {@link dev.oblivruin.jcu.constant.RuntimeConstant} class and <i>Xxx</i>Helper
+ * The {@link dev.oblivruin.jcu.constant.RuntimeConstant} class
  * <b>deviate from this pattern</b>.
  */
 package dev.oblivruin.jcu.constant;

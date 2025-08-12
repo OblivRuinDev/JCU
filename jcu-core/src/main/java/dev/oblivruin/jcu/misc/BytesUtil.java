@@ -14,7 +14,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package dev.oblivruin.jcu.util;
+package dev.oblivruin.jcu.misc;
 
 import dev.oblivruin.jcu.builds.api.shadow.SameHead;
 import dev.oblivruin.jcu.builds.api.shadow.Shadow;
@@ -28,13 +28,13 @@ public final class BytesUtil {
     private BytesUtil() {}
 
     @SameHead
-    public static void putShort(byte[] bytes, int off, int v) {
+    public static void setShort(byte[] bytes, int off, int v) {
         bytes[off] = (byte) (v >>> 8);
         bytes[++off] = (byte) v;
     }
 
     @SameHead
-    public static void putShort(byte[] bytes, int off, short v) {
+    public static void setShort(byte[] bytes, int off, short v) {
         bytes[off] = (byte) (v >>> 8);
         bytes[++off] = (byte) v;
     }
@@ -50,7 +50,7 @@ public final class BytesUtil {
     }
 
     @SameHead
-    public static void putInt(byte[] bytes, int off, int v) {
+    public static void setInt(byte[] bytes, int off, int v) {
         bytes[  off] = (byte) (v >>> 24);
         bytes[++off] = (byte) (v >>> 16);
         bytes[++off] = (byte) (v >>> 8 );
@@ -66,7 +66,7 @@ public final class BytesUtil {
     }
 
     @SameHead
-    public static void putLong(byte[] bytes, int off, long v) {
+    public static void setLong(byte[] bytes, int off, long v) {
         bytes[  off] = (byte) (v >>> 56);
         bytes[++off] = (byte) (v >>> 48);
         bytes[++off] = (byte) (v >>> 40);

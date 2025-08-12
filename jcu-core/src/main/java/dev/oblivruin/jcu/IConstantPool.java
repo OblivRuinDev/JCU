@@ -18,11 +18,13 @@ package dev.oblivruin.jcu;
 
 import dev.oblivruin.jcu.constant.Tag;
 
+import java.util.Iterator;
+
 /**
- * This interface provides low-level primitives for interacting with
+ * Provides low-level primitives for interacting and building
  * constant pool structure.
  * <br>
- * This API is unsafe; all operations must comply with the API contract.
+ * This API is unsafe and requires strict contract compliance.
  *
  * @author OblivRuinDev
  */
@@ -50,6 +52,8 @@ public interface IConstantPool {
      */
     int tag(int index);
 
+    int findTag(int tag, int off);
+
     /**
      * Try to find a {@code CONSTANT_Utf8_info} entry for the given string.
      * <br>
@@ -64,23 +68,33 @@ public interface IConstantPool {
 
     /**
      * Try to find a {@code CONSTANT_Integer_info} entry for the given value.
+     * <br>
+     * May return -1 if not found, depending on implementation.
      *
      * @param value the integer value
      * @return index of the constant pool entry
      */
-    int findInt(int value);
+    default int findInt(int value) {
+        return findU5(Tag.Integer, value);
+    }
 
     /**
      * Try to find a {@code CONSTANT_Float_info} entry for the given value.
+     * <br>
+     * May return -1 if not found, depending on implementation.
      *
      * @param value the float value
      * @return index of the constant pool entry
      */
-    int findFloat(float value);
+    default int findFloat(float value) {
+        return findU5(Tag.Float, Float.floatToIntBits(value));
+    }
 
     /**
      * Try to find a 5-byte constant entry (e.g. {@code CONSTANT_Integer_info},
      * {@code CONSTANT_Methodref_info}) for given value.
+     * <br>
+     * May return -1 if not found, depending on implementation.
      *
      * @param tag the constant tag (see {@link Tag})
      * @param data the payload data
@@ -90,22 +104,32 @@ public interface IConstantPool {
 
     /**
      * Try to find a {@code CONSTANT_Long_info} entry for the given value.
+     * <br>
+     * May return -1 if not found, depending on implementation.
      *
      * @param value the long value
      * @return index of the constant pool entry
      */
-    int findLong(long value);
+    default int findLong(long value) {
+        return findU9(Tag.Long, value);
+    }
 
     /**
      * Try to find a {@code CONSTANT_Double_info} entry for the given value.
+     * <br>
+     * May return -1 if not found, depending on implementation.
      *
      * @param value the double value
      * @return index of the constant pool entry
      */
-    int findDouble(double value);
+    default int findDouble(double value) {
+        return findU9(Tag.Double, Double.doubleToLongBits(value));
+    }
 
     /**
      * Try to find a 9-byte constant pool entry (e.g. {@code CONSTANT_Long_info}).
+     * <br>
+     * May return -1 if not found, depending on implementation.
      *
      * @param tag the constant tag (see {@link Tag})
      * @param data the payload data
@@ -115,6 +139,8 @@ public interface IConstantPool {
 
     /**
      * Try to find a single-reference constant entry (e.g. {@code CONSTANT_Class_info}).
+     * <br>
+     * May return -1 if not found, depending on implementation.
      *
      * @param tag the constant tag (see {@link Tag})
      * @param refIndex index of the referenced constant pool entry
@@ -126,16 +152,22 @@ public interface IConstantPool {
      * Try to find a double-reference constant entry (e.g. {@code CONSTANT_Fieldref}).
      * <br>
      * The return value of this method is the same as {@code findU5(tag, (refIndex1 << 16) | refIndex2)}.
+     * <br>
+     * May return -1 if not found, depending on implementation.
      *
-     * @param tag the constant tag (see {@link Tag})
+     * @param tag       the constant tag (see {@link Tag})
      * @param refIndex1 index of the 1st referenced constant
      * @param refIndex2 index of the 2nd referenced constant
      * @return index of the constant pool entry
      */
-    int findRef2(int tag, int refIndex1, int refIndex2);
+    default int findRef2(int tag, int refIndex1, int refIndex2) {
+        return findU5(tag, (refIndex1 << 8) | refIndex2);
+    }
 
     /**
      * Try to find a {@code CONSTANT_MethodHandle_info} entry.
+     * <br>
+     * May return -1 if not found, depending on implementation.
      *
      * @param kind the method handle kind (1-9, see {@link dev.oblivruin.jcu.constant.Tag.Kind})
      * @param refIndex index of the referenced constant
@@ -148,6 +180,7 @@ public interface IConstantPool {
      *
      * @param index constant pool index of a {@code CONSTANT_Utf8_info} entry
      * @return the decoded string value
+     * @throws IndexOutOfBoundsException if index is outside valid range
      */
     String utf8V(int index);
 
@@ -166,12 +199,17 @@ public interface IConstantPool {
 
     /**
      * Returns the float value of a {@code CONSTANT_Float_info} entry.
+     * <p>
+     * This method assumes the entry is of the correct type and will attempt to read it
+     * as a float constant regardless of its actual tag.
      *
      * @param index constant pool index of a {@code CONSTANT_Float_info} entry
      * @return the float value
      * @throws IndexOutOfBoundsException if index is outside valid range
      */
-    float floatV(int index);
+    default float floatV(int index) {
+        return Float.intBitsToFloat(intV(index));
+    }
 
     /**
      * Returns the long value by interpreting the constant pool entry at the given index
@@ -188,15 +226,23 @@ public interface IConstantPool {
 
     /**
      * Returns the double value of a {@code CONSTANT_Double_info} entry.
+     * <p>
+     * This method assumes the entry is of the correct type and will attempt to read it
+     * as a double constant regardless of its actual tag.
      *
      * @param index constant pool index of a {@code CONSTANT_Double_info} entry
      * @return the double value
      * @throws IndexOutOfBoundsException if index is outside valid range
      */
-    double doubleV(int index);
+    default double doubleV(int index) {
+        return Double.longBitsToDouble(longV(index));
+    }
 
     /**
      * Returns the reference index of a single-reference constant entry.
+     * <p>
+     * This method assumes the entry is of the correct type and will attempt to read it
+     * as a single_reference constant regardless of its actual tag.
      *
      * @param index constant pool index of a reference entry
      * @return referenced constant pool index
@@ -206,6 +252,9 @@ public interface IConstantPool {
 
     /**
      * Returns the first reference index of a double-reference constant entry.
+     * <p>
+     * This method assumes the entry is of the correct type and will attempt to read it
+     * as a double-reference constant regardless of its actual tag.
      *
      * @param index constant pool index of a double-reference entry
      * @return first referenced constant pool index
@@ -215,6 +264,9 @@ public interface IConstantPool {
 
     /**
      * Returns the second reference index of a double-reference constant entry.
+     * <p>
+     * This method assumes the entry is of the correct type and will attempt to read it
+     * as a double-reference constant regardless of its actual tag.
      *
      * @param index constant pool index of a double-reference entry
      * @return second referenced constant pool index
@@ -227,15 +279,23 @@ public interface IConstantPool {
      * The return value of this method is the same as {@link #intV(int)}.
      * <p>
      * The format is: {@code (ref2Index1 << 16) | ref2Index2}
+     * <p>
+     * This method assumes the entry is of the correct type and will attempt to read it
+     * as a double-reference constant regardless of its actual tag.
      *
      * @param index constant pool index of a double-reference entry
      * @return combined reference indexes
      * @throws IndexOutOfBoundsException if index is outside valid range
      */
-    int ref2Indexes(int index);
+    default int ref2Indexes(int index) {
+        return intV(index);
+    }
 
     /**
      * Returns the reference index of a {@code CONSTANT_MethodHandle_info} entry.
+     * <p>
+     * This method assumes the entry is of the correct type and will attempt to read it
+     * as a double-reference constant regardless of its actual tag.
      *
      * @param index constant pool index of a {@code CONSTANT_MethodHandle_info} entry
      * @return referenced constant pool index
@@ -245,6 +305,9 @@ public interface IConstantPool {
 
     /**
      * Returns the kind value of a {@code CONSTANT_MethodHandle_info} entry.
+     * <p>
+     * This method assumes the entry is of the correct type and will attempt to read it
+     * as a MethodHandle constant regardless of its actual tag.
      *
      * @param index constant pool index of a {@code CONSTANT_MethodHandle_info} entry
      * @return method handle kind (1-9)
@@ -254,6 +317,9 @@ public interface IConstantPool {
 
     /**
      * Returns the kind and reference index of a {@code CONSTANT_MethodHandle_info} entry as a packed value.
+     * <p>
+     * This method assumes the entry is of the correct type and will attempt to read it
+     * as a MethodHandle constant regardless of its actual tag.
      * <p>
      * The format is: {@code (kind << 16) | refIndex}
      *
@@ -327,6 +393,15 @@ public interface IConstantPool {
          * @return second referenced index
          */
         int refIndex2();
+    }
+
+    abstract class IUtf8 implements IConstant {
+        @Override
+        public final int tag() {
+            return Tag.Utf8;
+        }
+
+        abstract String value();
     }
 
     /**

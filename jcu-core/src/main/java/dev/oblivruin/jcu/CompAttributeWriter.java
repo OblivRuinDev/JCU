@@ -16,59 +16,88 @@
 // limitations under the License.
 package dev.oblivruin.jcu;
 
-import dev.oblivruin.jcu.util.ByteArray;
+import dev.oblivruin.jcu.misc.ByteArray;
 
-public class CompAttributeWriter extends AttributeWriter implements IRawCompAttributeVisitor {
-    protected int count = 0;
-    protected int off1;
+/**
+ * A low-level writer for building composite attributes (attributes that may contain attributes).
+ *
+ * @see dev.oblivruin.jcu.AttributeWriter
+ * @author OblivRuinDev
+ */
+public final class CompAttributeWriter extends AttributeWriter implements IRawCompAttributeVisitor {
+    private AttrContainer nest;
+
+    /**
+     * Constructs a composite attribute writer, reserving 4 bytes for the {@code attribute_length}.
+     *
+     * @see AttributeWriter#AttributeWriter(ByteArray)
+     * @param array the byte array used for storage
+     */
     public CompAttributeWriter(ByteArray array) {
         super(array);
     }
 
+    /**
+     * Delegating to {@code new AttrContainer(this.array)},
+     * the current offset is stored in {@link AttrContainer#off} and
+     * reserve 2 bytes for the {@code attributes_count} before writing attributes.
+     * <p>
+     * <b>Contract:</b> Optional if no attributes will be written.
+     * If called, must be invoked exactly once before visiting any attributes.
+     *
+     * @see AttrContainer#AttrContainer(ByteArray)
+     */
     @Override
     public void visitAttributes() {
-        this.off1 = array.length;
-        array.ensureFree(2);
-        //reserve for attributes_count
-        array.length+=2;
+        nest = new AttrContainer(array);
+    }
+
+    /** @return the attributes container */
+    public AttrContainer getAttrContainer() {
+        return nest;
     }
 
     @Override
     public void visitAttribute(int nameIndex, int off, int len, byte[] data) {
-        ++count;
-        array.put24(nameIndex, len);
-        array.add(data, off, len);
+        nest.visitAttribute(nameIndex, off, len, data);
     }
 
     @Override
     public void visitAttribute(int nameIndex, int value) {
-        ++count;
-        array.put242(nameIndex, 2, value);
+        nest.visitAttribute(nameIndex, value);
     }
 
     @Override
     public void visitEmptyAttribute(int nameIndex) {
-        ++count;
-        array.put24(nameIndex, 0);
+        nest.visitEmptyAttribute(nameIndex);
     }
 
     @Override
     public AttributeWriter visitAttribute(int nameIndex) {
-        ++count;
-        array.put2(nameIndex);
-        return new AttributeWriter(array);
+        return nest.visitAttribute(nameIndex);
     }
 
     @Override
     public CompAttributeWriter visitCompAttribute(int nameIndex) {
-        ++count;
-        array.put2(nameIndex);
-        return new CompAttributeWriter(array);
+        return nest.visitCompAttribute(nameIndex);
     }
 
+    /**
+     * Finalizes the composite attribute by:
+     * <ol>
+     *   <li>Writing {@code attributes_count} via {@link AttrContainer#visitEnd()}</li>
+     *   <li>Writing {@code attribute_length} via {@link AttributeWriter#visitEnd()}</li>
+     * </ol>
+     * <p>
+     * <b>Contract:</b> Must be called exactly once after all content and attributes.
+     */
     @Override
     public void visitEnd() {
+        if (nest == null) {
+            array.put2(0);
+        } else {
+            nest.visitEnd();
+        }
         super.visitEnd();
-        array.set2(off1, count);
     }
 }

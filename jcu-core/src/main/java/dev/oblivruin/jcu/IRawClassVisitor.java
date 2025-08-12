@@ -17,9 +17,9 @@
 package dev.oblivruin.jcu;
 
 /**
- * This interface provides low-level primitives for interacting with class bytecodes.
+ * Provides low-level primitives for building class file bytecodes.
  * <br>
- * This API is unsafe; all operations must comply with the API contract.
+ * This API is unsafe and requires strict contract compliance.
  *
  * @author OblivRuinDev
  */
@@ -36,7 +36,7 @@ public interface IRawClassVisitor extends IRawAttributable {
      * @param superCIndex index of a {@code CONSTANT_Class_info} entry for superclass.
      *                   For interface, this must point to {@code java/lang/Object}.
      *                   The only exception is {@link Object}, where this index must be 0.
-     * @param interfaceCIndexes array of indexes to {@code CONSTANT_Class_info} entries representing an
+     * @param interfaceCIndexes array of indexes to {@code CONSTANT_Class_info} entries representing a
      *                         direct superinterfaces in source code order.
      */
     void visit(int version, int access, int thisCIndex, int superCIndex, int[] interfaceCIndexes);

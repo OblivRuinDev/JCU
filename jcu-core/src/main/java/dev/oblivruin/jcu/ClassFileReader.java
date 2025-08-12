@@ -16,24 +16,41 @@
 // limitations under the License.
 package dev.oblivruin.jcu;
 
+import dev.oblivruin.jcu.constant.Tag;
+import dev.oblivruin.jcu.misc.BytesUtil;
+import jdk.internal.vm.annotation.Stable;
+
 import java.nio.charset.StandardCharsets;
+import java.util.function.IntFunction;
 
 import static dev.oblivruin.jcu.constant.Tag.*;
 
-public class ClassFileReader implements IConstantPool {
+public class ClassFileReader implements IConstantPool, IntFunction<char[]> {
     // Stable Member Declare Start
     /**
-     *
+     * Point to each constant entry tag <b>plus 1</b>.
      */
+    @Stable
     protected final int[] cpInfo;
+    @Stable
     protected final byte[] bytes;
     public final int maxStrLen;
+    public final int header;
+    public final int interfaceCount;
     protected char[] buffer = null;
     protected final String[] utf8Cache;
+    /**
+     * Position of first method.
+     */
+    protected int mPos = 0;
+    /**
+     * Position of first attribute.
+     */
+    protected int aPos = 0;
 
     public ClassFileReader(byte[] bytes) {
         this.bytes = bytes;
-        int cCount = ((bytes[8] << 8) | bytes[9]);
+        int cCount = readU2(8);
         int maxStrLen = 20;
         int[] array = new int[cCount];
         array[0] = 0;
@@ -76,6 +93,8 @@ public class ClassFileReader implements IConstantPool {
                     break;
             }
         }
+        this.header = off;
+        this.interfaceCount = readU2(off + 6);
         this.maxStrLen = maxStrLen;
         this.cpInfo = array;
         int s = 0;
@@ -86,6 +105,84 @@ public class ClassFileReader implements IConstantPool {
             }
         }
         utf8Cache = new String[s];
+    }
+
+    @Override
+    public int findUtf8(String value) {
+        if (value == null) {
+            return 0;
+        }
+        int index = 0;
+        while ((index = findTag(String, ++index)) != -1) {
+            java.lang.String str = utf8Cache[index];
+            if (value.equals(str != null ? str : (utf8Cache[index] = utf8V(index)))) {
+                return index;
+            }
+        }
+        return -1;
+    }
+
+    @Override
+    public final int findLong(long value) {
+        return this.findU9(Tag.Long, value);
+    }
+
+    @Override
+    public final int findDouble(double value) {
+        return this.findU9(Tag.Double, java.lang.Double.doubleToLongBits(value));
+    }
+
+    @Override
+    public int findU9(int tag, long data) {
+        int index = 0;
+        while ((index = findTag(tag, ++index)) != -1) {
+            if (data == readU8(cpInfo[index])) {
+                return index;
+            }
+        }
+        return -1;
+    }
+
+    @Override
+    public int findRef1(int tag, int refIndex) {
+        int index = 0;
+        while ((index = findTag(tag, ++index)) != -1) {
+            if (refIndex == readU2(cpInfo[index])) {
+                return index;
+            }
+        }
+        return -1;
+    }
+
+    @Override
+    public int findRef2(int tag, int refIndex1, int refIndex2) {
+        return findU5(tag, (refIndex1 << 8) | refIndex2);
+    }
+
+    @Override
+    public int findMethodHandle(int kind, int refIndex) {
+        int index = 0;
+        while ((index = findTag(MethodHandle, ++index)) != -1) {
+            if (bytes[cpInfo[index]] == kind && refIndex == readU2(cpInfo[index] + 1)) {
+                return index;
+            }
+        }
+        return -1;
+    }
+
+    @Override
+    public IRef1 ref1V(int index) {
+        throw new UnsupportedOperationException();//todo
+    }
+
+    @Override
+    public IRef2 ref2V(int index) {
+        throw new UnsupportedOperationException();//todo
+    }
+
+    @Override
+    public IMethodHandle methodHandleV(int index) {
+        throw new UnsupportedOperationException();//todo
     }
 
     @Override
@@ -105,6 +202,16 @@ public class ClassFileReader implements IConstantPool {
     }
 
     @Override
+    public int findTag(int tag, int off) {
+        for (int len = cpInfo.length; off < len; ++off) {
+            if (bytes[cpInfo[off] - 1] == tag) {
+                return len;
+            }
+        }
+        return -1;
+    }
+
+    @Override
     public int findInt(int value) {
         return findU5(Integer, value);
     }
@@ -114,99 +221,203 @@ public class ClassFileReader implements IConstantPool {
         return findU5(Float, java.lang.Float.floatToIntBits(value));
     }
 
+    /**
+     * May return -1 if don't find.
+     * <br>
+     * {@inheritDoc}
+     * @param tag {@inheritDoc}
+     * @param data {@inheritDoc}
+     * @return {@inheritDoc}, may return -1 if don't find.
+     */
     @Override
     public int findU5(int tag, int data) {
-        return 0;
+        int index = 0;
+        while ((index = findTag(tag, ++index)) != -1) {
+            if (data == readU4(cpInfo[index])) {
+                return index;
+            }
+        }
+        return -1;
     }
 
+    /** @throws IndexOutOfBoundsException {@inheritDoc}*/
     @Override
     public String utf8V(int index) {
         java.lang.String str = utf8Cache[index];
         if (str != null) {
             return str;
         } else {
+            return utf8Cache[index] = readUtf8((index = cpInfo[index]) + 2, readU2(index));
         }
     }
 
+    //todo: need more check
     protected final String readUtf8(int off, int len) {
+        byte[] bytes = this.bytes;
         for (int index = off, end = off + len; index < end; ++index) {
-            byte b = bytes[index];
-            if ((b & 0x40) != 0) {// 7th bit is 1, which means that it isn't one-byte-char
-                if (buffer == null) {
-                    buffer = new char[maxStrLen];
+            if ((bytes[index] & 0b1000_0000) != 0) {
+                char[] buffer = this.buffer == null ?
+                        this.buffer = new char[maxStrLen] :
+                        this.buffer;
+                int pointer = -1;
+                for (; off < index; ++off) {
+                    buffer[++pointer] = (char) bytes[off];
                 }
+                byte b;
+                for (; off < end; ++off) {
+                    b = bytes[off];
+                    buffer[++pointer] =
+                            ((b & 0b1000_0000) != 0) ?
+                                    (((b & 0b0010_0000) != 0) ?
+                                            (char)    (((b & 0b0000_1111) << 12) |
+                                            ((bytes[++off] & 0b0011_1111) << 6 ) |
+                                             (bytes[++off] & 0b0011_1111))
+                                            :  (char) (((b & 0b0001_1111) << 6) |
+                                             (bytes[++off] & 0b0011_1111)))
+                                    : (char) b;
+                }
+                return new String(buffer, 0, ++pointer);
             }
-        }
+        }// one-byte char
         return new String(bytes, off, len, StandardCharsets.ISO_8859_1);
     }
 
+    /** @throws IndexOutOfBoundsException {@inheritDoc}*/
     @Override
     public final int intV(int index) {
         return readU4(cpInfo[index]);
     }
 
+    /** @throws IndexOutOfBoundsException {@inheritDoc}*/
     @Override
     public final float floatV(int index) {
         return java.lang.Float.intBitsToFloat(intV(index));
     }
 
+    /** @throws IndexOutOfBoundsException {@inheritDoc}*/
     @Override
     public final long longV(int index) {
         return readU8(cpInfo[index]);
     }
 
+    /** @throws IndexOutOfBoundsException {@inheritDoc}*/
     @Override
     public final double doubleV(int index) {
         return java.lang.Double.longBitsToDouble(longV(index));
     }
 
+    /** @throws IndexOutOfBoundsException {@inheritDoc}*/
     @Override
     public final int ref1Index(int index) {
         return readU2(cpInfo[index]);
     }
 
+    /** @throws IndexOutOfBoundsException {@inheritDoc}*/
     @Override
     public final int ref2Index1(int index) {
         return ref1Index(index);
     }
 
+    /** @throws IndexOutOfBoundsException {@inheritDoc}*/
     @Override
     public final int ref2Index2(int index) {
         return readU2(cpInfo[index] + 2);
     }
 
+    /** @throws IndexOutOfBoundsException {@inheritDoc}*/
     @Override
     public final int ref2Indexes(int index) {
         return intV(index);// can be treated as a CONSTANT_Integer
     }
 
+    /** @throws IndexOutOfBoundsException {@inheritDoc}*/
     @Override
     public final int methodHandleIndex(int index) {
         return readU2(cpInfo[index] + 1);
     }
 
+    /** @throws IndexOutOfBoundsException {@inheritDoc}*/
     @Override
     public final int methodHandleKind(int index) {
         return bytes[cpInfo[index]];
     }
 
+    /** @throws IndexOutOfBoundsException {@inheritDoc}*/
     @Override
     public final int methodHandleKindAndRef(int index) {
-        return (methodHandleKind(index) >>> 16) | methodHandleIndex(index);
+        return readU4(cpInfo[index] - 1) & 0xFF_FFFF;
     }
 
+    public void accept(IRawClassVisitor rawClassVisitor) {
+        int[] array;
+        int off = header + 7;
+        if (interfaceCount > 0) {
+            array = new int[interfaceCount];
+            for (int index = 0; index < interfaceCount; ++index) {
+                array[index] = (bytes[++off] << 8) | bytes[++off];
+            }
+        } else {
+            array = null;
+        }
+        ++off;
+        rawClassVisitor.visit(readU4(4), readU2(header), readU2(header + 2), readU2(header + 4), array);
+        int count0 = readU2(off);//field count
+        off+=2;
+        while (count0 > 0) {
+            off = acceptAttributes(rawClassVisitor.visitField(readU2(off), readU2(off + 2), readU2(off + 4)), off + 6);
+            --count0;
+        }
+        count0 = readU2(off);//method
+        off+=2;
+        while (count0 > 0) {
+            off = acceptAttributes(rawClassVisitor.visitMethod(readU2(off), readU2(off + 2), readU2(off + 4)), off + 6);
+            --count0;
+        }
+        acceptAttributes(rawClassVisitor, off);// implicit  visitEnd()
+    }
+
+    /**
+     * Visit attributes structure on given offset.
+     *
+     * @param attributable visitor
+     * @param off point to {@code attributes_count}
+     */
+    protected int acceptAttributes(IRawAttributable attributable, int off) {
+        int count = readU2(off);
+        for (; count > 0; --count) {
+            int len;
+            attributable.visitAttribute(off + 2, off + 8, (len = readU4(off + 4)), bytes);
+            off = off + len + 6;
+        }
+        attributable.visitEnd();
+        return off + 2;
+    }
+
+    public final int fieldPos() {
+        return header + 8 + interfaceCount*2;
+    }
+
+    // bytes reader
     public final int readU2(int index) {
-        return (bytes[index] << 8) | bytes[++index];
+        return BytesUtil.getShort(bytes, index);
     }
 
     public final int readU4(int index) {
-        return  (bytes[  index] << 24) |
-                (bytes[++index] << 16) |
-                (bytes[++index] << 8 ) |
-                 bytes[++index];
+        return BytesUtil.getInt(bytes, index);
     }
 
     public final long readU8(int index) {
-        return ((long) readU4(index) << 32) | readU4(index + 4);
+        return BytesUtil.getLong(bytes, index);
+    }
+
+    @Override
+    public char[] apply(int value) {
+        if (buffer == null) {
+            return buffer = new char[Math.max(maxStrLen, value)];
+        } else if (buffer.length >= value) {
+            return buffer;
+        } else {
+            return buffer = new char[value];
+        }
     }
 }

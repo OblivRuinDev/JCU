@@ -18,8 +18,9 @@ package dev.oblivruin.jcu;
 
 import dev.oblivruin.jcu.constant.AttributeNames;
 import dev.oblivruin.jcu.constant.Tag;
-import dev.oblivruin.jcu.util.ByteArray;
-import dev.oblivruin.jcu.util.IntArray;
+import dev.oblivruin.jcu.misc.ByteArray;
+import dev.oblivruin.jcu.misc.BytesUtil;
+import dev.oblivruin.jcu.misc.IntArray;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -27,7 +28,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * This class provides low-level primitives for interacting with class bytecodes.
+ * Provides low-level primitives for interacting with class bytecodes.
  * <br>
  * This class only ensures that correct API calls are executed successfully.
  * For uncorrected API callings, exception and data corruption may occur.
@@ -62,7 +63,7 @@ public class ClassFileWriter implements IRawClassVisitor, IConstantPool {//todo:
     protected final ByteArray head = new ByteArray() {
         @Override
         protected int newSize(int expected) {
-            return Math.max(expected, this.length > 10000 ? this.data.length + 3200 : this.data.length * 2);// avoid data inflation
+            return Math.max(expected, this.length > 10000 ? this.data.length + 4800 : this.data.length * 2);// avoid data inflation
         }
     };
 
@@ -84,7 +85,12 @@ public class ClassFileWriter implements IRawClassVisitor, IConstantPool {//todo:
      * <pre class="screen">
      * method_info   methods[methods_count];</pre>
      */
-    protected final ByteArray meth = new ByteArray(0);
+    protected final ByteArray meth = new ByteArray(0) {
+        @Override
+        protected int newSize(int expected) {
+            return this.length == 0 ? 100 : super.newSize(expected);
+        }
+    };
 
     /**
      * The data structure is:
@@ -101,7 +107,7 @@ public class ClassFileWriter implements IRawClassVisitor, IConstantPool {//todo:
 
     {
         // magic number
-        head.set4(0, 0xCAFEBABE);
+        BytesUtil.setInt(head.data, 0, 0xCAFEBABE);
         // skip  minor, major, and constant pool count
         head.length = 10;
 
@@ -125,6 +131,18 @@ public class ClassFileWriter implements IRawClassVisitor, IConstantPool {//todo:
     @Override
     public final int tag(int index) {
         return head.data[cpInfo.data[index]];
+    }
+
+    @Override
+    public int findTag(int tag, int off) {
+        byte[] cp = head.data;
+        int[] cpInf = cpInfo.data;
+        for (int len = cpInfo.length; off < len; ++off) {
+            if (cp[cpInf[off]] == tag) {
+                return len;
+            }
+        }
+        return -1;
     }
 
     @Override
@@ -185,7 +203,8 @@ public class ClassFileWriter implements IRawClassVisitor, IConstantPool {//todo:
         pos = head.length++;
         cpInfo.add(pos);
         h[pos] = (byte) tag;
-        head.put4_(value);
+        BytesUtil.setInt(head.data, head.length, value);
+        head.length+=4;
         return index;
     }
 
@@ -218,7 +237,8 @@ public class ClassFileWriter implements IRawClassVisitor, IConstantPool {//todo:
         cpInfo.add(pos);
         cpInfo.add(0);// unavailable
         h[pos] = (byte) tag;
-        head.put8_(value);
+        BytesUtil.setLong(head.data, head.length, value);
+        head.length+=8;
         return cpInfo.length - 1;
     }
 
@@ -294,7 +314,7 @@ public class ClassFileWriter implements IRawClassVisitor, IConstantPool {//todo:
 
     @Override
     public final int intV(int index) {
-        return head.u4(cpInfo.data[index] + 1);
+        return BytesUtil.getInt(head.data, cpInfo.data[index] + 1);
     }
 
     @Override
@@ -304,7 +324,7 @@ public class ClassFileWriter implements IRawClassVisitor, IConstantPool {//todo:
 
     @Override
     public final long longV(int index) {
-        return head.u8(cpInfo.data[index] + 1);
+        return BytesUtil.getLong(head.data, cpInfo.data[index] + 1);
     }
 
     @Override
@@ -380,17 +400,17 @@ public class ClassFileWriter implements IRawClassVisitor, IConstantPool {//todo:
 
     @Override
     public final int ref1Index(int index) {
-        return head.u2(cpInfo.data[index] + 1);
+        return BytesUtil.getU2(head.data, cpInfo.data[index] + 1);
     }
 
     @Override
     public final int ref2Index1(int index) {
-        return head.u2(cpInfo.data[index] + 1);
+        return BytesUtil.getU2(head.data, cpInfo.data[index] + 1);
     }
 
     @Override
     public final int ref2Index2(int index) {
-        return head.u2(cpInfo.data[index] + 3);
+        return BytesUtil.getU2(head.data, cpInfo.data[index] + 3);
     }
 
     @Override
@@ -400,7 +420,7 @@ public class ClassFileWriter implements IRawClassVisitor, IConstantPool {//todo:
 
     @Override
     public final int methodHandleIndex(int index) {
-        return head.u2(cpInfo.data[index] + 2);
+        return BytesUtil.getU2(head.data, cpInfo.data[index] + 2);
     }
 
     @Override
@@ -417,9 +437,9 @@ public class ClassFileWriter implements IRawClassVisitor, IConstantPool {//todo:
     public final void visit(int version, int access, int thisCIndex, int superCIndex, int[] interfaceCIndexes) {
         // body.length is 0
         if (interfaceCIndexes == null || interfaceCIndexes.length == 0) {
-            body.set2(6, 0);
+            BytesUtil.setShort(body.data, 6, 0);
             posF =
-                    (body.length = 6);
+                    (body.length = 8);
         } else {
             int inteCount = interfaceCIndexes.length;
             body.ensureFree(8 + 2*inteCount);
@@ -434,14 +454,14 @@ public class ClassFileWriter implements IRawClassVisitor, IConstantPool {//todo:
             posF =
                     (body.length = ++pointer);
         }
-        h_(version, access, thisCIndex, superCIndex);
+        visitHead(version, access, thisCIndex, superCIndex);
     }
 
-    protected final void h_(int ver, int access, int thisCIndex, int superCIndex) {
-        head.set4(4, ver);
-        body.set2(0, access);
-        body.set2(2, thisCIndex);
-        body.set2(4, superCIndex);
+    protected final void visitHead(int ver, int access, int thisCIndex, int superCIndex) {
+        BytesUtil.setInt(head.data, 4, ver);
+        BytesUtil.setShort(body.data, 0, access);
+        BytesUtil.setShort(body.data, 2, thisCIndex);
+        BytesUtil.setShort(body.data, 4, superCIndex);
     }
 
     //@Stable
@@ -500,8 +520,10 @@ public class ClassFileWriter implements IRawClassVisitor, IConstantPool {//todo:
 
     @Override
     public final void visitEnd() {
-        head.set2(8, cpInfo.length);//  Constant Count
-        body.set2(posF, countF);// Field Count
+        //  Constant Count
+        BytesUtil.setShort(head.data, 8, cpInfo.length);
+        // Field Count
+        BytesUtil.setShort(body.data, posF, countF);
     }
 
     public final byte[] toByteArray() {
