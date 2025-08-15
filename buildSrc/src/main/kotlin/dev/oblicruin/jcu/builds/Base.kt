@@ -14,6 +14,26 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-rootProject.name = "JCU"
+@file:Suppress("NAME_SHADOWING")
 
-include("jcu-core", "jcu-asm", "jcu-common", "jcu-check", "jcu-util", "build-tool", "build-api", "test-tool")
+package dev.oblicruin.jcu.builds
+
+import org.gradle.api.DefaultTask
+import org.gradle.api.tasks.AbstractCopyTask
+import org.gradle.api.tasks.TaskProvider
+
+abstract class SingleFileBuildTask : DefaultTask() {
+    final override fun getGroup() = "build"
+
+    fun appendOutput(task: TaskProvider<out AbstractCopyTask>, into: String? = null) {
+        val task = task.get()
+        task.dependsOn(this)
+        if (into == null) {
+            task.from(this.outputs.files.singleFile)
+        } else {
+            task.from(this.outputs.files.singleFile) {
+                into(into)
+            }
+        }
+    }
+}

@@ -14,6 +14,22 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-rootProject.name = "JCU"
 
-include("jcu-core", "jcu-asm", "jcu-common", "jcu-check", "jcu-util", "build-tool", "build-api", "test-tool")
+plugins {
+    `java-library`
+    `kotlin-dsl`
+    `java-gradle-plugin`
+}
+
+repositories {
+    mavenCentral()
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+}
+
+kotlin {
+    jvmToolchain(8)
+}
