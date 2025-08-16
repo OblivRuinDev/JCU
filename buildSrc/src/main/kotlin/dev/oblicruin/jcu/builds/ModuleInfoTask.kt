@@ -68,7 +68,7 @@ abstract class ModuleInfoTask : SingleFileBuildTask() {
             dos.writeUTF(moduleName.get())
             // #6 Module  #4
             buffer[0] = 19// tag package
-            buffer[2] = 4
+            buffer[2] = 5
             dos.write(buffer)
             // #7 Utf8    $moduleVer
             dos.write(1); dos.writeUTF(moduleVer.get())
