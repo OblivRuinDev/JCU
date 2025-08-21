@@ -14,22 +14,24 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package dev.oblicruin.jcu.builds
 
-import org.gradle.api.DefaultTask
-import org.gradle.api.tasks.AbstractCopyTask
-import org.gradle.api.tasks.TaskProvider
+package dev.oblivruin.jcu.constant.helper;
 
-abstract class SingleFileBuildTask : DefaultTask() {
-    final override fun getGroup() = "build"
+public final class JavaHelper {
+    public static int compute(int minor, int major) {
+        return (minor << 16) | major;
+    }
 
-    fun appendOutput(task: TaskProvider<out AbstractCopyTask>, into: String? = null) {
-        if (into == null) {
-            task.get().from(this.outputs.files.singleFile)
-        } else {
-            task.get().from(this.outputs.files.singleFile) {
-                into(into)
-            }
-        }
+    public static int minor(int ver) {
+        return ver >>> 16;
+    }
+
+    public static int major(int ver) {
+        return ver & 0xFFFF;
+    }
+
+    public static void validate(int ver) {
+        int major = ver & 0xFFFF;
+        int minor = ver >>> 16;
     }
 }

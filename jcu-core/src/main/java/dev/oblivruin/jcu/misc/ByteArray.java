@@ -61,7 +61,7 @@ public class ByteArray extends Array {
             } else {
                 int v = 3*(len - index) + pointer + 1;
                 if (v > data.length) {
-                    System.arraycopy(data, 0, (data = new byte[newSize(v)]), 0, pointer);
+                    System.arraycopy(data, 0, (data = new byte[newSize(v)]), 0, pointer + 1);
                     this.data = data;
                 }
                 for (; index < len; ++index) {
@@ -122,20 +122,22 @@ public class ByteArray extends Array {
     @Override
     public final void ensureFree(int size) {
         int i = length + size;
-        if (i >= data.length) {
+        int o = data.length;
+        if (i >= o) {
             System.arraycopy(data, 0,
                     (data = new byte[newSize(i)]), 0,
-                    length);
+                    o);
         }
     }
 
     @Override
     public final boolean tryExpand(int size) {
         int i = length + size;
-        if (i >= data.length) {
+        int o = data.length;
+        if (i >= o) {
             System.arraycopy(data, 0,
                     (data = new byte[newSize(i)]), 0,
-                    length);
+                    o);
             return true;
         }
         return false;
@@ -146,9 +148,15 @@ public class ByteArray extends Array {
         return Math.max(expected, data.length * 2);
     }
 
-    public final void put2(int value) {
+    public final void put2(short value) {
         ensureFree(2);
         BytesUtil.setShort(this.data, this.length, value);
+        this.length+=2;
+    }
+
+    public final void put2(int value) {
+        ensureFree(2);
+        BytesUtil.setUShort(this.data, this.length, value);
         this.length+=2;
     }
 
@@ -176,81 +184,46 @@ public class ByteArray extends Array {
         ensureFree(6);
         int pointer = this.length;
         byte[] array = this.data;
-        array[  pointer] = (byte) (v1 >>> 8);
-        array[++pointer] = (byte)  v1;
-        array[++pointer] = (byte) (v2 >>> 8);
-        array[++pointer] = (byte)  v2;
-        array[++pointer] = (byte) (v3 >>> 8);
-        array[++pointer] = (byte)  v3;
-        this.length = pointer + 1;
+        BytesUtil.setUShort(array, pointer, v1);
+        BytesUtil.setUShort(array, pointer + 2, v2);
+        BytesUtil.setUShort(array, pointer + 4, v3);
+        this.length = pointer + 6;
     }
 
     public final void put24(int v1, int v2) {
         ensureFree(6);
         int pointer = this.length;
         byte[] array = this.data;
-        array[  pointer] = (byte) (v1 >>> 8);
-        array[++pointer] = (byte)  v1;
-        array[++pointer] = (byte) (v2 >>> 24);
-        array[++pointer] = (byte) (v2 >>> 16);
-        array[++pointer] = (byte) (v2 >>> 8 );
-        array[++pointer] = (byte)  v2;
-        this.length = pointer + 1;
+        BytesUtil.setUShort(array, pointer, v1);
+        BytesUtil.setInt(array, pointer + 2, v2);
+        this.length = pointer + 6;
     }
 
     public final void put242(int v1, int v2, int v3) {
         ensureFree(8);
         int pointer = this.length;
         byte[] array = this.data;
-        array[  pointer] = (byte) (v1 >>> 8);
-        array[++pointer] = (byte)  v1;
-        array[++pointer] = (byte) (v2 >>> 24);
-        array[++pointer] = (byte) (v2 >>> 16);
-        array[++pointer] = (byte) (v2 >>> 8 );
-        array[++pointer] = (byte)  v2;
-        array[++pointer] = (byte) (v3 >>> 8);
-        array[++pointer] = (byte)  v3;
-        this.length = pointer + 1;
+        BytesUtil.setUShort(array, pointer, v1);
+        BytesUtil.setInt(array, pointer + 2, v2);
+        BytesUtil.setUShort(array, pointer + 6, v3);
+        this.length = pointer + 8;
     }
 
     public final void put122_(int v1, int v2, int v3) {
         int pointer = this.length;
         byte[] array = this.data;
-        array[  pointer] = (byte) v1;
-        array[++pointer] = (byte) (v2 >>> 8);
-        array[++pointer] = (byte) v2;
-        array[++pointer] = (byte) (v3 >>> 8);
-        array[++pointer] = (byte) v3;
-        this.length = pointer + 1;
+        array[pointer] = (byte) v1;
+        BytesUtil.setUShort(array, pointer + 1, v2);
+        BytesUtil.setUShort(array, pointer + 3, v3);
+        this.length = pointer + 5;
     }
 
     public final void put12_(int v1, int v2) {
         int pointer = this.length;
         byte[] array = this.data;
         array[  pointer] = (byte) v1;
-        array[++pointer] = (byte) (v2 >>> 8);
-        array[++pointer] = (byte) v2;
-        this.length = pointer + 1;
-    }
-
-    public final boolean match4(int index, int value) {
-        byte[] data = this.data;
-        return  data[  index] == (byte) (value >>> 24) &&
-                data[++index] == (byte) (value >>> 16) &&
-                data[++index] == (byte) (value >>> 8 ) &&
-                data[++index] == (byte)  value;
-    }
-
-    public final boolean match8(int index, long value) {
-        byte[] data = this.data;
-        return  data[  index] == (byte) (value >>> 56) &&
-                data[++index] == (byte) (value >>> 48) &&
-                data[++index] == (byte) (value >>> 40) &&
-                data[++index] == (byte) (value >>> 32) &&
-                data[++index] == (byte) (value >>> 24) &&
-                data[++index] == (byte) (value >>> 16) &&
-                data[++index] == (byte) (value >>> 8 ) &&
-                data[++index] == (byte)  value;
+        BytesUtil.setUShort(array, pointer + 1, v2);
+        this.length = pointer + 3;
     }
 
     public final byte[] toArray() {

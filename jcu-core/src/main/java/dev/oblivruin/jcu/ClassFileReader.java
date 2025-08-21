@@ -25,13 +25,25 @@ import java.util.function.IntFunction;
 
 import static dev.oblivruin.jcu.constant.Tag.*;
 
+/**
+ * A low-level class file reader.
+ *
+ * @author OblivRuinDev
+ */
 public class ClassFileReader implements IConstantPool, IntFunction<char[]> {
     // Stable Member Declare Start
     /**
      * Point to each constant entry tag <b>plus 1</b>.
+     * <br>
+     * <b>DO NOT CHANGE ELEMENTS IN THIS ARRAY OR UNEXPECTED BEHAVIOR MAY OCCUR!!!</b>
      */
     @Stable
     protected final int[] cpInfo;
+    /**
+     * Class file bytes.
+     * <br>
+     * <b>DO NOT CHANGE ELEMENTS IN THIS ARRAY OR UNEXPECTED BEHAVIOR MAY OCCUR!!!</b>
+     */
     @Stable
     protected final byte[] bytes;
     public final int maxStrLen;
@@ -48,6 +60,11 @@ public class ClassFileReader implements IConstantPool, IntFunction<char[]> {
      */
     protected int aPos = 0;
 
+    /**
+     * Construct a new ClassFileReader
+     * @param bytes trusted class file bytes,
+     *             <b>DO NOT CHANGE ELEMENTS IN THIS ARRAY OR UNEXPECTED BEHAVIOR MAY OCCUR!!!</b>
+     */
     public ClassFileReader(byte[] bytes) {
         this.bytes = bytes;
         int cCount = readU2(8);
@@ -56,20 +73,19 @@ public class ClassFileReader implements IConstantPool, IntFunction<char[]> {
         array[0] = 0;
         int off = 10;
         for (int index = 1; index < cCount; ++index) {
-            array[index] = ++off;
+            array[index] = off + 1;
             switch (bytes[off]) {
                 case Utf8:
                     int len = readU2(++off);
                     if (len > maxStrLen) {
                         maxStrLen = len;
                     }
-                    off+=len;
-                    ++off;
+                    off+=(len + 2);
                     break;
                 case Long:
                 case Double:
-                    off+=8;
-                    array[++index] = 0;// not available
+                    off+=9;
+                    array[++index] = 1;// not available
                     break;
                 case Integer:
                 case Float:
@@ -79,17 +95,17 @@ public class ClassFileReader implements IConstantPool, IntFunction<char[]> {
                 case NameAndType:
                 case Dynamic:
                 case InvokeDynamic:
-                    off+=4;
+                    off+=5;
                     break;
                 case MethodHandle:
-                    off+=3;
+                    off+=4;
                     break;
                 case Class:
                 case String:
                 case MethodType:
                 case Module:
                 case Package:
-                    off+=2;
+                    off+=3;
                     break;
             }
         }
@@ -99,7 +115,7 @@ public class ClassFileReader implements IConstantPool, IntFunction<char[]> {
         this.cpInfo = array;
         int s = 0;
         for (int index = cCount - 1; index > 0; --index) {
-            if (bytes[array[index]] == String) {
+            if (bytes[array[index] - 1] == Utf8) {
                 s = ++index;
                 break;
             }
@@ -124,19 +140,19 @@ public class ClassFileReader implements IConstantPool, IntFunction<char[]> {
 
     @Override
     public final int findLong(long value) {
-        return this.findU9(Tag.Long, value);
+        return this.findC9(Tag.Long, value);
     }
 
     @Override
     public final int findDouble(double value) {
-        return this.findU9(Tag.Double, java.lang.Double.doubleToLongBits(value));
+        return this.findC9(Tag.Double, java.lang.Double.doubleToLongBits(value));
     }
 
     @Override
-    public int findU9(int tag, long data) {
+    public int findC9(int tag, long data) {
         int index = 0;
         while ((index = findTag(tag, ++index)) != -1) {
-            if (data == readU8(cpInfo[index])) {
+            if (data == BytesUtil.getLong(bytes, cpInfo[index])) {
                 return index;
             }
         }
@@ -156,7 +172,7 @@ public class ClassFileReader implements IConstantPool, IntFunction<char[]> {
 
     @Override
     public int findRef2(int tag, int refIndex1, int refIndex2) {
-        return findU5(tag, (refIndex1 << 8) | refIndex2);
+        return findC5(tag, (refIndex1 << 8) | refIndex2);
     }
 
     @Override
@@ -213,12 +229,12 @@ public class ClassFileReader implements IConstantPool, IntFunction<char[]> {
 
     @Override
     public int findInt(int value) {
-        return findU5(Integer, value);
+        return findC5(Integer, value);
     }
 
     @Override
     public int findFloat(float value) {
-        return findU5(Float, java.lang.Float.floatToIntBits(value));
+        return findC5(Float, java.lang.Float.floatToIntBits(value));
     }
 
     /**
@@ -230,10 +246,10 @@ public class ClassFileReader implements IConstantPool, IntFunction<char[]> {
      * @return {@inheritDoc}, may return -1 if don't find.
      */
     @Override
-    public int findU5(int tag, int data) {
+    public int findC5(int tag, int data) {
         int index = 0;
         while ((index = findTag(tag, ++index)) != -1) {
-            if (data == readU4(cpInfo[index])) {
+            if (data == readInt(cpInfo[index])) {
                 return index;
             }
         }
@@ -251,7 +267,6 @@ public class ClassFileReader implements IConstantPool, IntFunction<char[]> {
         }
     }
 
-    //todo: need more check
     protected final String readUtf8(int off, int len) {
         byte[] bytes = this.bytes;
         for (int index = off, end = off + len; index < end; ++index) {
@@ -285,7 +300,7 @@ public class ClassFileReader implements IConstantPool, IntFunction<char[]> {
     /** @throws IndexOutOfBoundsException {@inheritDoc}*/
     @Override
     public final int intV(int index) {
-        return readU4(cpInfo[index]);
+        return readInt(cpInfo[index]);
     }
 
     /** @throws IndexOutOfBoundsException {@inheritDoc}*/
@@ -297,7 +312,7 @@ public class ClassFileReader implements IConstantPool, IntFunction<char[]> {
     /** @throws IndexOutOfBoundsException {@inheritDoc}*/
     @Override
     public final long longV(int index) {
-        return readU8(cpInfo[index]);
+        return BytesUtil.getLong(bytes, cpInfo[index]);
     }
 
     /** @throws IndexOutOfBoundsException {@inheritDoc}*/
@@ -345,7 +360,44 @@ public class ClassFileReader implements IConstantPool, IntFunction<char[]> {
     /** @throws IndexOutOfBoundsException {@inheritDoc}*/
     @Override
     public final int methodHandleKindAndRef(int index) {
-        return readU4(cpInfo[index] - 1) & 0xFF_FFFF;
+        return readInt(cpInfo[index] - 1) & 0xFF_FFFF;
+    }
+
+    public void copyCPTo(IConstantPool cp) {
+        for (int index = 1, len = cpInfo.length; index < len; ++index) {
+            int tag;
+            int off;
+            switch (tag = bytes[(off = cpInfo[index]) - 1]) {
+                case Utf8:
+                    cp.findUtf8(utf8V(index));
+                    break;
+                case Long:
+                case Double:
+                    cp.findC9(tag, BytesUtil.getLong(bytes, off));
+                    ++index;
+                    break;
+                case Integer:
+                case Float:
+                case Fieldref:
+                case Methodref:
+                case InterfaceMethodref:
+                case NameAndType:
+                case Dynamic:
+                case InvokeDynamic:
+                    cp.findC5(tag, readInt(off));
+                    break;
+                case MethodHandle:
+                    cp.findMethodHandle(bytes[off], readU2(off + 1));
+                    break;
+                case Class:
+                case String:
+                case MethodType:
+                case Module:
+                case Package:
+                    cp.findRef1(tag, readU2(off));
+                    break;
+            }
+        }
     }
 
     public void accept(IRawClassVisitor rawClassVisitor) {
@@ -360,7 +412,7 @@ public class ClassFileReader implements IConstantPool, IntFunction<char[]> {
             array = null;
         }
         ++off;
-        rawClassVisitor.visit(readU4(4), readU2(header), readU2(header + 2), readU2(header + 4), array);
+        rawClassVisitor.visit(readInt(4), readU2(header), readU2(header + 2), readU2(header + 4), array);
         int count0 = readU2(off);//field count
         off+=2;
         while (count0 > 0) {
@@ -384,13 +436,14 @@ public class ClassFileReader implements IConstantPool, IntFunction<char[]> {
      */
     protected int acceptAttributes(IRawAttributable attributable, int off) {
         int count = readU2(off);
+        off+=2;
         for (; count > 0; --count) {
             int len;
-            attributable.visitAttribute(off + 2, off + 8, (len = readU4(off + 4)), bytes);
+            attributable.visitAttribute(readU2(off), off + 6, (len = readInt(off + 2)), bytes);
             off = off + len + 6;
         }
         attributable.visitEnd();
-        return off + 2;
+        return off;
     }
 
     public final int fieldPos() {
@@ -399,15 +452,11 @@ public class ClassFileReader implements IConstantPool, IntFunction<char[]> {
 
     // bytes reader
     public final int readU2(int index) {
-        return BytesUtil.getShort(bytes, index);
+        return BytesUtil.getUShort(bytes, index);
     }
 
-    public final int readU4(int index) {
+    public final int readInt(int index) {
         return BytesUtil.getInt(bytes, index);
-    }
-
-    public final long readU8(int index) {
-        return BytesUtil.getLong(bytes, index);
     }
 
     @Override

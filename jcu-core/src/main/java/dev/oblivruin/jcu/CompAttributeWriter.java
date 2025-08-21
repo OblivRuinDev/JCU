@@ -17,6 +17,7 @@
 package dev.oblivruin.jcu;
 
 import dev.oblivruin.jcu.misc.ByteArray;
+import jdk.internal.vm.annotation.Stable;
 
 /**
  * A low-level writer for building composite attributes (attributes that may contain attributes).
@@ -25,6 +26,7 @@ import dev.oblivruin.jcu.misc.ByteArray;
  * @author OblivRuinDev
  */
 public final class CompAttributeWriter extends AttributeWriter implements IRawCompAttributeVisitor {
+    @Stable
     private AttrContainer nest;
 
     /**
@@ -85,8 +87,8 @@ public final class CompAttributeWriter extends AttributeWriter implements IRawCo
     /**
      * Finalizes the composite attribute by:
      * <ol>
-     *   <li>Writing {@code attributes_count} via {@link AttrContainer#visitEnd()}</li>
-     *   <li>Writing {@code attribute_length} via {@link AttributeWriter#visitEnd()}</li>
+     *   <li>Writing {@code attributes_count} via {@code nest.}{@link AttrContainer#visitEnd() visitEnd()}</li>
+     *   <li>Writing {@code attribute_length} via {@code super.}{@link AttributeWriter#visitEnd() visitEnd()}</li>
      * </ol>
      * <p>
      * <b>Contract:</b> Must be called exactly once after all content and attributes.

@@ -14,10 +14,9 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+package dev.oblivruin.jcu.constant.helper;
 
-package dev.oblivruin.jcu.constant;
-
-import dev.oblivruin.asm.ValidateException;
+import dev.oblivruin.jcu.ValidateException;
 
 import static dev.oblivruin.jcu.constant.ArrayType.*;
 

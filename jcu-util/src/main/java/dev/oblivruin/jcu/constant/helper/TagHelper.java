@@ -15,10 +15,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package dev.oblivruin.jcu.constant;
+package dev.oblivruin.jcu.constant.helper;
 
-import dev.oblivruin.asm.ValidateException;
-import dev.oblivruin.asm.VersionException;
+import dev.oblivruin.jcu.ValidateException;
+import dev.oblivruin.jcu.VersionException;
+import dev.oblivruin.jcu.constant.Java;
+import dev.oblivruin.jcu.constant.Tag;
 
 import static dev.oblivruin.jcu.constant.Tag.*;
 import static dev.oblivruin.jcu.constant.Tag.Kind.*;

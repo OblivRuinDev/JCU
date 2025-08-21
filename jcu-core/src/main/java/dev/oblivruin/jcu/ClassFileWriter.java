@@ -16,7 +16,6 @@
 // limitations under the License.
 package dev.oblivruin.jcu;
 
-import dev.oblivruin.jcu.constant.AttributeNames;
 import dev.oblivruin.jcu.constant.Tag;
 import dev.oblivruin.jcu.misc.ByteArray;
 import dev.oblivruin.jcu.misc.BytesUtil;
@@ -39,15 +38,16 @@ import java.util.Map;
  *     <li> Cache the return value which call {@code find<i>XXX</i>} and declared
  *     in {@link IConstantPool} due to linear-time iterative searches.</li>
  *     <li>Some attribute names(e.g., "Code", "RuntimeVisibleAnnotation") have their
- *     utf8 indexes cached in {@link #attrMap}, just call {@code attrMap.<i>AttributeName</i>()} to get value.</li>
+ *     utf8 indexes cached in {@link dev.oblivruin.jcu.util.AttrStrMap}, just call {@code attrMap.<i>AttributeName</i>()} to get value.</li>
  * </ul>
  * </p>
  * @author OblivRuinDev
  */
+@SuppressWarnings("JavadocReference")
 public class ClassFileWriter implements IRawClassVisitor, IConstantPool {//todo: hash all constant
     /**
      * Point to every constant tag position in {@link #head}.
-     * @apiNote for unfree slot, just use {@code 0}, which the tag value is -54.
+     * @apiNote for unusable slot, just pus {@code 0}, which the tag value is -54 in {@code head.data}.
      */
     protected final IntArray cpInfo = new IntArray();
 
@@ -66,7 +66,6 @@ public class ClassFileWriter implements IRawClassVisitor, IConstantPool {//todo:
             return Math.max(expected, this.length > 10000 ? this.data.length + 4800 : this.data.length * 2);// avoid data inflation
         }
     };
-
     /**
      * The data structure is:
      * <pre class="screen">
@@ -79,7 +78,10 @@ public class ClassFileWriter implements IRawClassVisitor, IConstantPool {//todo:
      * field_info   fields[fields_count];</pre>
      */
     protected final ByteArray body = new ByteArray(75);
-
+    /** The value of {@code fields_count}. */
+    protected int countF = 0;
+    /** The value of {@code methods_count}. */
+    protected int countM = 0;
     /**
      * The data structure is:
      * <pre class="screen">
@@ -91,7 +93,8 @@ public class ClassFileWriter implements IRawClassVisitor, IConstantPool {//todo:
             return this.length == 0 ? 100 : super.newSize(expected);
         }
     };
-
+    /** The value of {@code attributes_count}. */
+    protected int countA = 0;
     /**
      * The data structure is:
      * <pre class="screen">
@@ -99,10 +102,6 @@ public class ClassFileWriter implements IRawClassVisitor, IConstantPool {//todo:
      */
     protected final ByteArray attr = new ByteArray(100);
 
-    /**
-     * Cache for frequently used attribute name indexes in the constant pool.
-     */
-    public final AttrStrMap attrMap = new AttrStrMap();
     protected final HashMap<String, Integer> utf8Map = new HashMap<>();
 
     {
@@ -125,8 +124,9 @@ public class ClassFileWriter implements IRawClassVisitor, IConstantPool {//todo:
      * or a negative value to indicate an invalid constant slot.
      *
      * @param index {@inheritDoc}
-     * @return {@inheritDoc}
-     * @throws IndexOutOfBoundsException {@inheritDoc}
+     * @return {@inheritDoc}, or 0 if index is between {@code head.length}(inclusive) and {@code head.data.length}(exclusive),
+     * or -54 if it is an unusable slot.
+     * @throws IndexOutOfBoundsException if index is outside or equal to {@code head.data.length}
      */
     @Override
     public final int tag(int index) {
@@ -154,17 +154,25 @@ public class ClassFileWriter implements IRawClassVisitor, IConstantPool {//todo:
         if (v != null) {
             return v;
         }
+        return createUtf8(value);
+    }
+
+    /**
+     * Create a {@code CONSTANT_Utf8_info} at the tail of the constant pool.
+     * @param value utf8 value (must not null)
+     * @return the index where the utf8 constant is placed
+     */
+    protected final int createUtf8(String value) {
         int pos = head.length;
         // reserve for tag and length
         head.length+=3;
         int len = head.writeUtf8(value);
         if (len > 65535) {
-            throw new IndexOutOfBoundsException("Utf8 cannot long than 65535!");
+            throw new Utf8TooLongException(cpInfo.length, value, len);
         }
         byte[] bytes = head.data;
         bytes[pos] = Tag.Utf8;
-        bytes[pos + 1] = (byte) (len >>> 8);
-        bytes[pos + 2] = (byte)  len;
+        BytesUtil.setUShort(bytes, pos + 1, len);
         // reuse variable
         len = cpInfo.length;
         cpInfo.add(pos);
@@ -174,138 +182,152 @@ public class ClassFileWriter implements IRawClassVisitor, IConstantPool {//todo:
 
     @Override
     public final int findInt(int value) {
-        return findU5(Tag.Integer, value);
+        return findC5(Tag.Integer, value);
     }
 
     @Override
     public final int findFloat(float value) {
-        return findU5(Tag.Float, Float.floatToIntBits(value));
+        return findC5(Tag.Float, Float.floatToIntBits(value));
     }
 
     @Override
-    public final int findU5(int tag, int value) {
+    public final int findC5(int tag, int value) {
         int index = cpInfo.length;
         byte[] h = head.data;
-        int[] c = cpInfo.data;
+        int[] cpInf = cpInfo.data;
         int pos;
         while (--index > 0) {
-            pos = c[index];
-            if (h[pos] == tag) {
-                if (head.match4(pos + 1, value)) {
+            if (h[pos = cpInf[index]] == tag) {
+                if (BytesUtil.matchInt(h, pos + 1, value)) {
                     return index;
                 }
             }
         }
-        if (head.tryExpand(5)) {
-            h = head.data;
-        }
-        index = cpInfo.length;
-        pos = head.length++;
+        return createC5(tag, value);
+    }
+
+    /**
+     * Create a constant with a fixed-length of 5 (include the space of {@code tag}) at the tail of the constant pool.
+     * @param value 4-bytes value
+     * @return the index where the constant is placed
+     */
+    protected final int createC5(int tag, int value) {
+        head.ensureFree(5);
+        int pos = head.length;
         cpInfo.add(pos);
-        h[pos] = (byte) tag;
-        BytesUtil.setInt(head.data, head.length, value);
-        head.length+=4;
-        return index;
+        head.data[pos] = (byte) tag;
+        BytesUtil.setInt(head.data, pos + 1, value);
+        head.length+=5;
+        return cpInfo.length - 1;
     }
 
     @Override
     public final int findLong(long value) {
-        return findU9(Tag.Long, value);
+        return findC9(Tag.Long, value);
     }
 
     @Override
     public final int findDouble(double value) {
-        return findU9(Tag.Double, Double.doubleToLongBits(value));
+        return findC9(Tag.Double, Double.doubleToLongBits(value));
     }
 
     @Override
-    public final int findU9(int tag, long value) {
+    public final int findC9(int tag, long value) {
         int index = cpInfo.length;
-        byte[] h = head.data;
-        int[] c = cpInfo.data;
+        byte[] data = head.data;
+        int[] cpInf = cpInfo.data;
         int pos;
         while (--index > 0) {
-            pos = c[index];
-            if (h[pos] == tag && head.match8(pos + 1, value)) {
+            if (data[pos = cpInf[index]] == tag && BytesUtil.matchLong(data, pos + 1, value)) {
                 return index;
             }
         }
-        if (head.tryExpand(9)) {
-            h = head.data;
-        }
-        pos = head.length++;
+        return createC9(tag, value);
+    }
+
+    /**
+     * Create a constant with a fixed-length of 9 (include the space of {@code tag}) at the tail of the constant pool.
+     * @param value 8-bytes value
+     * @return the index where the constant is placed
+     */
+    protected final int createC9(int tag, long value) {
+        head.ensureFree(9);
+        int pos = head.length;
         cpInfo.add(pos);
-        cpInfo.add(0);// unavailable
-        h[pos] = (byte) tag;
-        BytesUtil.setLong(head.data, head.length, value);
-        head.length+=8;
-        return cpInfo.length - 1;
+        cpInfo.add(0);// unusable slot
+        byte[] data = head.data;
+        data[pos] = (byte) tag;
+        BytesUtil.setLong(data, pos + 1, value);
+        head.length+=9;
+        return cpInfo.length - 2;
     }
 
     @Override
     public final int findRef1(int tag, int refIndex) {
         int index = cpInfo.length;
         byte[] h = head.data;
-        int[] c = cpInfo.data;
+        int[] cpInf = cpInfo.data;
         int pos;
         while (--index > 0) {
-            pos = c[index];
+            pos = cpInf[index];
             if (h[pos] == tag &&
-                    h[pos + 1] == (byte) (refIndex >>> 8) &&
-                    h[pos + 2] == (byte) refIndex) {
+                    BytesUtil.getShort(h, pos + 1) == refIndex) {
                 return index;
             }
         }
-        if (head.tryExpand(3)) {
-            h = head.data;
-        }
-        pos = head.length;
+        return createRef1(tag, refIndex);
+    }
+
+    protected final int createRef1(int tag, int refIndex) {
+        head.ensureFree(3);
+        int pos = head.length;
         cpInfo.add(pos);
-        h[pos] = (byte) tag;
-        h[++pos] = (byte) (refIndex >>> 8);
-        h[++pos] = (byte) refIndex;
-        head.length = ++pos;
+        byte[] data = head.data;
+        data[pos] = (byte) tag;
+        BytesUtil.setUShort(data, pos + 1, refIndex);
+        head.length+=3;
         return cpInfo.length - 1;
     }
 
     @Override
     public final int findRef2(int tag, int refIndex1, int refIndex2) {
-        return findU5(tag, (refIndex1 << 16) | (refIndex2 & 0xFFFF));
+        return findC5(tag, (refIndex1 << 16) | (refIndex2 & 0xFFFF));
     }
 
     @Override
     public final int findMethodHandle(int kind, int refIndex) {
         int index = cpInfo.length;
-        byte[] h = head.data;
-        int[] c = cpInfo.data;
+        byte[] data = head.data;
+        int[] cpInf = cpInfo.data;
         int pos;
         while (--index > 0) {
-            pos = c[index];
-            if (h[pos] == Tag.MethodHandle &&
-                    h[++pos] == kind &&
-                    h[++pos] == (byte) (refIndex >>> 8) &&
-                    h[++pos] == (byte) refIndex) {
+            pos = cpInf[index];
+            if (data[pos] == Tag.MethodHandle &&
+                    data[pos+1] == kind &&
+                    BytesUtil.matchUShort(data, pos + 2, refIndex)) {
                 return index;
             }
         }
-        if (head.tryExpand(4)) {
-            h = head.data;
-        }
-        index = cpInfo.length;
-        pos = head.length;
+        return createMethodHandle(kind, refIndex);
+    }
+
+    protected final int createMethodHandle(int kind, int refIndex) {
+        head.ensureFree(4);
+        int pos = head.length;
         cpInfo.add(pos);
-        h[  pos] = (byte) Tag.MethodHandle;
-        h[++pos] = (byte) kind;
-        h[++pos] = (byte) (refIndex >>> 8);
-        h[++pos] = (byte) refIndex;
-        head.length = pos + 1;
-        return index;
+        byte[] data = head.data;
+        data[pos] = (byte) Tag.MethodHandle;
+        data[pos + 1] = (byte) kind;
+        BytesUtil.setUShort(data, pos + 2, refIndex);
+        head.length+=4;
+        return cpInfo.length - 1;
     }
 
     @Override
     public final String utf8V(int index) {
+        Integer v = index;
         for (Map.Entry<String, Integer> entry : utf8Map.entrySet()) {
-            if (entry.getValue() == index) {
+            if (v.equals(entry.getValue())) {
                 return entry.getKey();
             }
         }
@@ -400,17 +422,17 @@ public class ClassFileWriter implements IRawClassVisitor, IConstantPool {//todo:
 
     @Override
     public final int ref1Index(int index) {
-        return BytesUtil.getU2(head.data, cpInfo.data[index] + 1);
+        return BytesUtil.getUShort(head.data, cpInfo.data[index] + 1);
     }
 
     @Override
     public final int ref2Index1(int index) {
-        return BytesUtil.getU2(head.data, cpInfo.data[index] + 1);
+        return ref1Index(index);
     }
 
     @Override
     public final int ref2Index2(int index) {
-        return BytesUtil.getU2(head.data, cpInfo.data[index] + 3);
+        return BytesUtil.getUShort(head.data, cpInfo.data[index] + 3);
     }
 
     @Override
@@ -420,12 +442,12 @@ public class ClassFileWriter implements IRawClassVisitor, IConstantPool {//todo:
 
     @Override
     public final int methodHandleIndex(int index) {
-        return BytesUtil.getU2(head.data, cpInfo.data[index] + 2);
+        return BytesUtil.getUShort(head.data, cpInfo.data[index] + 2);
     }
 
     @Override
     public final int methodHandleKind(int index) {
-        return head.data[cpInfo.data[index]];
+        return head.data[cpInfo.data[index] + 1];
     }
 
     @Override
@@ -433,13 +455,15 @@ public class ClassFileWriter implements IRawClassVisitor, IConstantPool {//todo:
         return (methodHandleKind(index) << 16) | methodHandleIndex(index);
     }
 
+    /**
+     * @implSpec Must execute {@code posF = $var; body.length = 2 + $var;}.
+     */
     @Override
     public final void visit(int version, int access, int thisCIndex, int superCIndex, int[] interfaceCIndexes) {
         // body.length is 0
         if (interfaceCIndexes == null || interfaceCIndexes.length == 0) {
-            BytesUtil.setShort(body.data, 6, 0);
-            posF =
-                    (body.length = 8);
+            //BytesUtil.setUShort(body.data, 6, 0);
+            body.length = 10;
         } else {
             int inteCount = interfaceCIndexes.length;
             body.ensureFree(8 + 2*inteCount);
@@ -451,24 +475,19 @@ public class ClassFileWriter implements IRawClassVisitor, IConstantPool {//todo:
                 d[++pointer] = (byte) (v >>> 8);
                 d[++pointer] = (byte) v;
             }
-            posF =
-                    (body.length = ++pointer);
+            body.length = pointer + 3;
         }
         visitHead(version, access, thisCIndex, superCIndex);
     }
 
     protected final void visitHead(int ver, int access, int thisCIndex, int superCIndex) {
         BytesUtil.setInt(head.data, 4, ver);
-        BytesUtil.setShort(body.data, 0, access);
-        BytesUtil.setShort(body.data, 2, thisCIndex);
-        BytesUtil.setShort(body.data, 4, superCIndex);
+        byte[] data = body.data;
+        BytesUtil.setUShort(data, 0, access);
+        BytesUtil.setUShort(data, 2, thisCIndex);
+        BytesUtil.setUShort(data, 4, superCIndex);
     }
 
-    //@Stable
-    protected int posF;
-    // Internal counter
-    protected int countF = 0;
-    protected int countM = 0;
     @Override
     public final FieldWriter visitField(int access, int nameIndex, int descIndex) {
         ++countF;
@@ -482,8 +501,6 @@ public class ClassFileWriter implements IRawClassVisitor, IConstantPool {//todo:
         meth.put222(access, nameIndex, descIndex);
         return new MethodWriter(meth);
     }
-
-    protected int countA = 0;
 
     @Override
     public final void visitAttribute(int nameIndex, int off, int len, byte[] data) {
@@ -521,37 +538,40 @@ public class ClassFileWriter implements IRawClassVisitor, IConstantPool {//todo:
     @Override
     public final void visitEnd() {
         //  Constant Count
-        BytesUtil.setShort(head.data, 8, cpInfo.length);
+        if (cpInfo.length > 65535) {
+            throw new ConstantPoolOverflowException();
+        }
+        BytesUtil.setUShort(head.data, 8, cpInfo.length);
         // Field Count
-        BytesUtil.setShort(body.data, posF, countF);
+        BytesUtil.setUShort(body.data, BytesUtil.getUShort(body.data, 6) * 2 + 8, countF);
     }
 
     public final byte[] toByteArray() {
-        int l1 = head.length;
+        int off = head.length;
         int l2 = body.length;
         int l3 = meth.length;
         int l4 = attr.length;
-        byte[] ret = new byte[l1 + l2 + l3 + 4/*for methods_count and attribute count*/ + l4];
-        System.arraycopy(head.data, 0, ret, 0, l1);
-        System.arraycopy(body.data, 0, ret, l1, l2);
-        l1+=l2;
+        byte[] ret = new byte[off + l2 + l3 + 4/*for methods_count and attribute count*/ + l4];
+        System.arraycopy(head.data, 0, ret, 0, off);
+        System.arraycopy(body.data, 0, ret, off, l2);
+        off+=l2;
         if (l3 == 0) {
-            ret[l1] = 0;
-            ret[++l1] = 0;
-            ++l1;
+            ret[off] = 0;
+            ret[++off] = 0;
+            ++off;
         } else {
-            ret[l1] = (byte) (countM >>> 8);
-            ret[++l1] = (byte) countM;
-            System.arraycopy(meth.data, 0, ret, ++l1, l3);
-            l1+=l3;
+            ret[off] = (byte) (countM >>> 8);
+            ret[++off] = (byte) countM;
+            System.arraycopy(meth.data, 0, ret, ++off, l3);// off = head.length + l2 + 2
+            off+=l3;
         }
         if (l4 == 0) {
-            ret[l1] = 0;
-            ret[++l1] = 0;
+            ret[off] = 0;
+            ret[++off] = 0;
         } else {
-            ret[l1] = (byte) (countA >>> 8);
-            ret[++l1] = (byte)  countA;
-            System.arraycopy(attr.data, 0, ret, ++l1, l4);
+            ret[off] = (byte) (countA >>> 8);
+            ret[++off] = (byte)  countA;
+            System.arraycopy(attr.data, 0, ret, ++off, l4);// off = head.length + l2 + l3 + 4
         }
         return ret;
     }
@@ -575,43 +595,5 @@ public class ClassFileWriter implements IRawClassVisitor, IConstantPool {//todo:
             output.write(countA);
             output.write(attr.data, 0, attr.length);
         }
-    }
-
-    public final class AttrStrMap {
-        // Special naming to reuse CONSTANT_Utf8 to reduce the size of ConstantPool
-        int ConstantValue = 0;
-        public int ConstantValue() {return ConstantValue == 0 ? ConstantValue = findUtf8(AttributeNames.ConstantValue) : ConstantValue;}
-        int Code = 0;
-        public int Code() {return Code == 0 ? Code = findUtf8(AttributeNames.Code) : Code;}
-        int StackMapTable = 0;
-        public int StackMapTable() {return StackMapTable == 0 ? StackMapTable = findUtf8(AttributeNames.StackMapTable) : StackMapTable;}
-        int Exceptions = 0;
-        public int Exceptions() {return Exceptions == 0 ? Exceptions = findUtf8(AttributeNames.Exceptions) : Exceptions;}
-        int Synthetic = 0;
-        public int Synthetic() {return Synthetic == 0 ? Synthetic = findUtf8(AttributeNames.Synthetic) : Synthetic;}
-        int Signature = 0;
-        public int Signature() {return Signature == 0 ? Signature = findUtf8(AttributeNames.Signature) : Signature;}
-        int LineNumberTable = 0;
-        public int LineNumberTable() {return LineNumberTable == 0 ? LineNumberTable = findUtf8(AttributeNames.LineNumberTable) : LineNumberTable;}
-        int LocalVariableTable = 0;
-        public int LocalVariableTable() {return LocalVariableTable == 0 ? LocalVariableTable = findUtf8(AttributeNames.LocalVariableTable) : LocalVariableTable;}
-        int Deprecated = 0;
-        public int Deprecated() {return Deprecated == 0 ? Deprecated = findUtf8(AttributeNames.Deprecated) : Deprecated;}
-        int RuntimeVisibleAnnotations = 0;
-        public int RuntimeVisibleAnnotations() {return RuntimeVisibleAnnotations == 0 ? RuntimeVisibleAnnotations = findUtf8(AttributeNames.RuntimeVisibleAnnotations) : RuntimeVisibleAnnotations;}
-        int RuntimeInvisibleAnnotations = 0;
-        public int RuntimeInvisibleAnnotations() {return RuntimeInvisibleAnnotations == 0 ? RuntimeInvisibleAnnotations = findUtf8(AttributeNames.RuntimeInvisibleAnnotations) : RuntimeInvisibleAnnotations;}
-        int RuntimeVisibleTypeAnnotations = 0;
-        public int RuntimeVisibleTypeAnnotations() {return RuntimeVisibleTypeAnnotations == 0 ? RuntimeVisibleTypeAnnotations = findUtf8(AttributeNames.RuntimeVisibleTypeAnnotations) : RuntimeVisibleTypeAnnotations;}
-        int RuntimeInvisibleTypeAnnotations = 0;
-        public int RuntimeInvisibleTypeAnnotations() {return RuntimeInvisibleTypeAnnotations == 0 ? RuntimeInvisibleTypeAnnotations = findUtf8(AttributeNames.RuntimeInvisibleTypeAnnotations) : RuntimeInvisibleTypeAnnotations;}
-        int RuntimeVisibleParameterAnnotations = 0;
-        public int RuntimeVisibleParameterAnnotations() {return RuntimeVisibleParameterAnnotations == 0 ? RuntimeVisibleParameterAnnotations = findUtf8(AttributeNames.RuntimeVisibleParameterAnnotations) : RuntimeVisibleParameterAnnotations;}
-        int RuntimeInvisibleParameterAnnotations = 0;
-        public int RuntimeInvisibleParameterAnnotations() {return RuntimeInvisibleParameterAnnotations == 0 ? RuntimeInvisibleParameterAnnotations = findUtf8(AttributeNames.RuntimeInvisibleParameterAnnotations) : RuntimeInvisibleParameterAnnotations;}
-        int AnnotationDefault = 0;
-        public int AnnotationDefault() {return AnnotationDefault == 0 ? AnnotationDefault = findUtf8(AttributeNames.AnnotationDefault) : AnnotationDefault;}
-        int MethodParameters = 0;
-        public int MethodParameters() {return MethodParameters == 0 ? MethodParameters = findUtf8(AttributeNames.MethodParameters) : MethodParameters;}
     }
 }

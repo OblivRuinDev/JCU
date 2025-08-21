@@ -14,10 +14,10 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+package dev.oblivruin.jcu.constant.helper;
 
-package dev.oblivruin.jcu.constant;
-
-import dev.oblivruin.jcu.util.UtilX;
+import dev.oblivruin.jcu.constant.Java;
+import dev.oblivruin.jcu.misc.UtilX;
 import dev.oblivruin.jcu.ValidateException;
 import dev.oblivruin.jcu.VersionException;
 
@@ -234,7 +234,7 @@ public final class AccessFlagHelper {
             }
             if (major >= 46 && major <= 60 &&
                     (flag & ACC_STRICT) != 0) {
-                throw new ValidateException("If a method of a class or interface has its ACC_ABSTRACT flag set, it must not have have its ACC_STRICT flag set (in a class file whose major version number is at least 46 and at most 60).")
+                throw new ValidateException("If a method of a class or interface has its ACC_ABSTRACT flag set, it must not have have its ACC_STRICT flag set (in a class file whose major version number is at least 46 and at most 60).");
             }
         }
     }
@@ -242,7 +242,7 @@ public final class AccessFlagHelper {
     public static void validate_method_init(int flag, int major) {
         vVisF(flag);
         if ((flag & (ACC_STATIC | ACC_FINAL | ACC_SYNCHRONIZED | ACC_BRIDGE | ACC_NATIVE | ACC_ABSTRACT)) != 0) {
-            throw new ValidateException("An instance initialization method (§2.9.1) may have at most one of its ACC_PUBLIC, ACC_PRIVATE, and ACC_PROTECTED flags set, and may also have its ACC_VARARGS and ACC_SYNTHETIC flags set, and may also (in a class file whose major version number is at least 46 and at most 60) have its ACC_STRICT flag set, but must not have any of the other flags in Table 4.6-A set.")
+            throw new ValidateException("An instance initialization method (§2.9.1) may have at most one of its ACC_PUBLIC, ACC_PRIVATE, and ACC_PROTECTED flags set, and may also have its ACC_VARARGS and ACC_SYNTHETIC flags set, and may also (in a class file whose major version number is at least 46 and at most 60) have its ACC_STRICT flag set, but must not have any of the other flags in Table 4.6-A set.");
         }
     }
 

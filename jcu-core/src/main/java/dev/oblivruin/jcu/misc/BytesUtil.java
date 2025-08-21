@@ -21,6 +21,8 @@ import dev.oblivruin.jcu.builds.api.shadow.Shadow;
 
 /**
  * A shadow class, have another version in JDK 9.
+ *
+ * @author OblivRuinDev
  */
 @Shadow
 public final class BytesUtil {
@@ -28,64 +30,94 @@ public final class BytesUtil {
     private BytesUtil() {}
 
     @SameHead
-    public static void setShort(byte[] bytes, int off, int v) {
-        bytes[off] = (byte) (v >>> 8);
-        bytes[++off] = (byte) v;
-    }
-
-    @SameHead
     public static void setShort(byte[] bytes, int off, short v) {
-        bytes[off] = (byte) (v >>> 8);
-        bytes[++off] = (byte) v;
+        bytes[off  ] = (byte) (v >>> 8);
+        bytes[off+1] = (byte) v;
     }
 
     @SameHead
-    public static int getShort(byte[] bytes, int off) {
-        return (bytes[off] << 8) | bytes[++off];
+    public static short getShort(byte[] bytes, int off) {
+        return (short) getUShort(bytes, off);
     }
 
     @SameHead
-    public static int getU2(byte[] bytes, int off) {
-        return getShort(bytes, off) & 0xFFFF;
+    public static boolean matchShort(byte[] bytes, int off, short v) {
+        return bytes[off] == (byte) (v >>> 8) && bytes[off+1] == (byte) v;
+    }
+
+    @SameHead
+    public static void setUShort(byte[] bytes, int off, int v) {
+        bytes[off  ] = (byte) (v >>> 8);
+        bytes[off+1] = (byte) v;
+    }
+
+    @SameHead
+    public static int getUShort(byte[] bytes, int off) {
+        return (bytes[off] & 0xFF) << 8 | bytes[off+1] & 0xFF;
+    }
+
+    @SameHead
+    public static boolean matchUShort(byte[] bytes, int off, int v) {
+        return bytes[off] == (byte) (v >>> 8) && bytes[off+1] == (byte) v;
     }
 
     @SameHead
     public static void setInt(byte[] bytes, int off, int v) {
-        bytes[  off] = (byte) (v >>> 24);
-        bytes[++off] = (byte) (v >>> 16);
-        bytes[++off] = (byte) (v >>> 8 );
-        bytes[++off] = (byte)  v;
+        bytes[off  ] = (byte) (v >>> 24);
+        bytes[off+1] = (byte) (v >>> 16);
+        bytes[off+2] = (byte) (v >>> 8 );
+        bytes[off+3] = (byte)  v;
     }
 
     @SameHead
     public static int getInt(byte[] bytes, int off) {
-        return  (bytes[  off] << 24) |
-                (bytes[++off] << 16) |
-                (bytes[++off] << 8 ) |
-                (bytes[++off]);
+        return  (bytes[off  ] & 0xFF) << 24 |
+                (bytes[off+1] & 0xFF) << 16 |
+                (bytes[off+2] & 0xFF) << 8  |
+                (bytes[off+3] & 0xFF);
+    }
+
+    @SameHead
+    public static boolean matchInt(byte[] bytes, int off, int v) {
+        return  bytes[off  ] == (byte) (v >>> 24) &&
+                bytes[off+1] == (byte) (v >>> 16) &&
+                bytes[off+2] == (byte) (v >>> 8) &&
+                bytes[off+3] == (byte)  v;
     }
 
     @SameHead
     public static void setLong(byte[] bytes, int off, long v) {
-        bytes[  off] = (byte) (v >>> 56);
-        bytes[++off] = (byte) (v >>> 48);
-        bytes[++off] = (byte) (v >>> 40);
-        bytes[++off] = (byte) (v >>> 32);
-        bytes[++off] = (byte) (v >>> 24);
-        bytes[++off] = (byte) (v >>> 16);
-        bytes[++off] = (byte) (v >>> 8 );
-        bytes[++off] = (byte)  v;
+        bytes[off  ] = (byte) (v >>> 56);
+        bytes[off+1] = (byte) (v >>> 48);
+        bytes[off+2] = (byte) (v >>> 40);
+        bytes[off+3] = (byte) (v >>> 32);
+        bytes[off+4] = (byte) (v >>> 24);
+        bytes[off+5] = (byte) (v >>> 16);
+        bytes[off+6] = (byte) (v >>> 8 );
+        bytes[off+7] = (byte)  v;
     }
 
     @SameHead
     public static long getLong(byte[] bytes, int off) {
-        return  ((long) bytes[  off] << 56) |
-                ((long) bytes[++off] << 48) |
-                ((long) bytes[++off] << 40) |
-                ((long) bytes[++off] << 32) |
-                (       bytes[++off] << 24) |
-                (       bytes[++off] << 16) |
-                (       bytes[++off] << 8 ) |
-                (       bytes[++off]);
+        return  ((long) (bytes[off  ] & 0xFF) << 56) |
+                ((long) (bytes[off+1] & 0xFF) << 48) |
+                ((long) (bytes[off+2] & 0xFF) << 40) |
+                ((long) (bytes[off+3] & 0xFF) << 32) |
+                ((long) (bytes[off+4] & 0xFF) << 24) |
+                (       (bytes[off+5] & 0xFF) << 16) |
+                (       (bytes[off+6] & 0xFF) << 8 ) |
+                (       (bytes[off+7] & 0xFF));
+    }
+
+    @SameHead
+    public static boolean matchLong(byte[] bytes, int off, long v) {
+        return  bytes[off  ] == (byte) (v >>> 56) &&
+                bytes[off+1] == (byte) (v >>> 48) &&
+                bytes[off+2] == (byte) (v >>> 40) &&
+                bytes[off+3] == (byte) (v >>> 32) &&
+                bytes[off+4] == (byte) (v >>> 24) &&
+                bytes[off+5] == (byte) (v >>> 16) &&
+                bytes[off+6] == (byte) (v >>> 8) &&
+                bytes[off+7] == (byte)  v;
     }
 }

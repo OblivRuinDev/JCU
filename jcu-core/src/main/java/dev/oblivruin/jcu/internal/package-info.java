@@ -14,22 +14,9 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package dev.oblicruin.jcu.builds
-
-import org.gradle.api.DefaultTask
-import org.gradle.api.tasks.AbstractCopyTask
-import org.gradle.api.tasks.TaskProvider
-
-abstract class SingleFileBuildTask : DefaultTask() {
-    final override fun getGroup() = "build"
-
-    fun appendOutput(task: TaskProvider<out AbstractCopyTask>, into: String? = null) {
-        if (into == null) {
-            task.get().from(this.outputs.files.singleFile)
-        } else {
-            task.get().from(this.outputs.files.singleFile) {
-                into(into)
-            }
-        }
-    }
-}
+/**
+ * Internal api, use as your own risk.
+ *
+ * @author OblivRuinDev
+ */
+package dev.oblivruin.jcu.internal;

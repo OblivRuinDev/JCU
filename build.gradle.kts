@@ -46,16 +46,7 @@ subprojects {
     }
 }
 
-val testTool = project(":test-tool") {
-    apply(plugin = "java-test-fixtures")
-
-    configure<JavaPluginExtension> {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-}
-
-val buildApi = project(":build-api") {
+project(":build-api") {
     description = "Api for custom build"
 }
 
@@ -63,13 +54,8 @@ val core = project(":jcu-core") {
     description = "Core API for classfile"
     group = "dev.oblivruin.jcu.core"
 
-    dependencies.api(buildApi)
 
-    set(arrayOf("dev/oblivruin/jcu", "dev/oblivruin/jcu/constant", "dev/oblivruin/jcu/misc"), vers = intArrayOf(9))
-
-    tasks.named<JavaCompile>("compileV9Java") {
-        options.compilerArgs.add("--add-exports=java.base/jdk.internal.vm.annotation=ALL-UNNAMED")
-    }
+    set(arrayOf("dev/oblivruin/jcu", "dev/oblivruin/jcu/constant", "dev/oblivruin/jcu/internal", "dev/oblivruin/jcu/misc"), vers = intArrayOf(9, 12))
 }
 
 val util = project(":jcu-util") {
@@ -77,7 +63,6 @@ val util = project(":jcu-util") {
     group = "dev.oblivruin.jcu.util"
 
     dependencies {
-        api(buildApi)
         api(core)
     }
 
@@ -87,7 +72,6 @@ val util = project(":jcu-util") {
 val common = project(":jcu-common") {
     group = "dev.oblivruin.jcu.common"
     dependencies {
-        api(buildApi)
         api(core)
     }
 
@@ -99,7 +83,6 @@ val asm = project(":jcu-asm") {
     group = "dev.oblivruin.jcu.asm"
 
     dependencies {
-        api(buildApi)
         api(core)
         api(util)
     }
@@ -107,7 +90,22 @@ val asm = project(":jcu-asm") {
     set(arrayOf("dev/oblivruin/jcu/asm"), arrayOf(core.group.toString(), util.group.toString()))
 }
 
-val buildTool = project(":build-tool") {
+project(":test-tool") {
+    configure<JavaPluginExtension> {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+    }
+
+    dependencies {
+        api(core)
+        api(common)
+        val implementation by configurations
+        implementation(platform("org.junit:junit-bom:5.13.4"))
+        implementation("org.junit.jupiter:junit-jupiter")
+    }
+}
+
+project(":build-tool") {
     description = "A implementation for recompile"
 
     configure<JavaPluginExtension> {
@@ -125,15 +123,17 @@ fun Project.set(packages: Array<String>, requires: Array<String> = emptyArray(),
         val testRuntimeOnly by configurations
         val testImplementation by configurations
 
-        //the fucking bug made it don't work
-        //testImplementation(testFixtures(project(":test-tool")))
+        testImplementation(project(":test-tool"))//fuck this line because I waste at least 2 days to configure it
         testImplementation(platform("org.junit:junit-bom:5.13.4"))
         testImplementation("org.junit.jupiter:junit-jupiter")
         testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+
+        api(project(":build-api"))
     }
 
     tasks.named<Test>("test") {
         useJUnitPlatform()
+        maxParallelForks = 8
     }
 
     val taskJar = tasks.named<Jar>("jar") {
@@ -148,7 +148,7 @@ fun Project.set(packages: Array<String>, requires: Array<String> = emptyArray(),
         }
     }
 
-    tasks.register<ModuleInfoTask>("genModuleInfo") {
+    val taskModInf = tasks.register<ModuleInfoTask>("genModuleInfo") {
         moduleName = this@set.group.toString()
         moduleVer = version.toString()
         exports = packages
@@ -157,11 +157,15 @@ fun Project.set(packages: Array<String>, requires: Array<String> = emptyArray(),
         appendOutput(taskJar)
     }
 
-    tasks.register<JarIndexTask>("genJarIndex") {
+    val taskJarIndex = tasks.register<JarIndexTask>("genJarIndex") {
         this.packages = packages
         jarName = tasks.named<Jar>("jar").get().archiveFileName
         defOutput()
         appendOutput(taskJar, "META-INF/")
+    }
+
+    taskJar.configure {
+        dependsOn(taskModInf, taskJarIndex)
     }
 
     // shadow class source set for multiple version
@@ -172,6 +176,9 @@ fun Project.set(packages: Array<String>, requires: Array<String> = emptyArray(),
                 val v = JavaVersion.toVersion(ver).toString()
                 sourceCompatibility = v
                 targetCompatibility = v
+                options.compilerArgs.add("--add-exports=java.base/jdk.internal.access=ALL-UNNAMED")
+                options.compilerArgs.add("--add-exports=java.base/jdk.internal.misc=ALL-UNNAMED")
+                options.compilerArgs.add("--add-exports=java.base/jdk.internal.vm.annotation=ALL-UNNAMED")
             }
             taskJar.configure {
                 dependsOn(compTask)
@@ -182,9 +189,9 @@ fun Project.set(packages: Array<String>, requires: Array<String> = emptyArray(),
         }
     }
 }
-
-fun JavaExec.setCP() {
-    dependsOn(buildTool.tasks.named("compileJava"))
-    classpath += buildTool.sourceSets["main"].output
-    classpath += core.sourceSets["main"].output
-}
+// not in use at now but reserve it
+//fun JavaExec.setCP() {
+//    dependsOn(buildTool.tasks.named("compileJava"))
+//    classpath += buildTool.sourceSets["main"].output
+//    classpath += core.sourceSets["main"].output
+//}

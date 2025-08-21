@@ -18,8 +18,6 @@ package dev.oblivruin.jcu;
 
 import dev.oblivruin.jcu.constant.Tag;
 
-import java.util.Iterator;
-
 /**
  * Provides low-level primitives for interacting and building
  * constant pool structure.
@@ -36,7 +34,7 @@ public interface IConstantPool {
      * Valid constant pool indices range from 1 to {@code count()-1}, with special
      * handling for {@code CONSTANT_Long_info} and {@code CONSTANT_Double_info} entries.
      *
-     * @return the constant pool count
+     * @return the value of {@code constant_pool_count}
      */
     int count();
 
@@ -52,6 +50,12 @@ public interface IConstantPool {
      */
     int tag(int index);
 
+    /**
+     * Try to find tag on given offset index
+     * @param tag the constant tag
+     * @param off the constant index
+     * @return the constant index, or -1 if not find
+     */
     int findTag(int tag, int off);
 
     /**
@@ -75,7 +79,7 @@ public interface IConstantPool {
      * @return index of the constant pool entry
      */
     default int findInt(int value) {
-        return findU5(Tag.Integer, value);
+        return findC5(Tag.Integer, value);
     }
 
     /**
@@ -87,7 +91,7 @@ public interface IConstantPool {
      * @return index of the constant pool entry
      */
     default int findFloat(float value) {
-        return findU5(Tag.Float, Float.floatToIntBits(value));
+        return findC5(Tag.Float, Float.floatToIntBits(value));
     }
 
     /**
@@ -100,7 +104,7 @@ public interface IConstantPool {
      * @param data the payload data
      * @return index of the constant pool entry
      */
-    int findU5(int tag, int data);
+    int findC5(int tag, int data);
 
     /**
      * Try to find a {@code CONSTANT_Long_info} entry for the given value.
@@ -111,7 +115,7 @@ public interface IConstantPool {
      * @return index of the constant pool entry
      */
     default int findLong(long value) {
-        return findU9(Tag.Long, value);
+        return findC9(Tag.Long, value);
     }
 
     /**
@@ -123,7 +127,7 @@ public interface IConstantPool {
      * @return index of the constant pool entry
      */
     default int findDouble(double value) {
-        return findU9(Tag.Double, Double.doubleToLongBits(value));
+        return findC9(Tag.Double, Double.doubleToLongBits(value));
     }
 
     /**
@@ -135,7 +139,7 @@ public interface IConstantPool {
      * @param data the payload data
      * @return index of the constant pool entry
      */
-    int findU9(int tag, long data);
+    int findC9(int tag, long data);
 
     /**
      * Try to find a single-reference constant entry (e.g. {@code CONSTANT_Class_info}).
@@ -161,7 +165,7 @@ public interface IConstantPool {
      * @return index of the constant pool entry
      */
     default int findRef2(int tag, int refIndex1, int refIndex2) {
-        return findU5(tag, (refIndex1 << 8) | refIndex2);
+        return findC5(tag, (refIndex1 << 8) | (refIndex2 & 0xFFFF));
     }
 
     /**

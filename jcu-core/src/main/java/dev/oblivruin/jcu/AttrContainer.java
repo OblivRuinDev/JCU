@@ -90,11 +90,11 @@ public class AttrContainer implements IRawAttributable {
     }
 
     /**
-     * Finalizes the attribute by writing the {@code attribute_length} at offset {@link #off}.
+     * Finalizes the attribute by writing the {@code attributes_count} at offset {@link #off}.
      * <p>
      * {@inheritDoc}
      */
     public void visitEnd() {
-        BytesUtil.setShort(array.data, off, count);
+        BytesUtil.setUShort(array.data, off, count);
     }
 }
