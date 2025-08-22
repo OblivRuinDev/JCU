@@ -16,8 +16,12 @@
 // limitations under the License.
 @file:Suppress("Since15", "UnstableApiUsage")
 
+import dev.oblicruin.jcu.builds.BuildTool
 import dev.oblicruin.jcu.builds.ModuleInfoTask
 import dev.oblicruin.jcu.builds.JarIndexTask
+import dev.oblicruin.jcu.builds.Recompile
+import org.gradle.kotlin.dsl.accessors.runtime.addDependencyTo
+import org.gradle.kotlin.dsl.resolver.buildSrcSourceRootsFilePath
 
 plugins {
     `java-platform`
@@ -56,6 +60,8 @@ val core = project(":jcu-core") {
 
 
     set(arrayOf("dev/oblivruin/jcu", "dev/oblivruin/jcu/constant", "dev/oblivruin/jcu/internal", "dev/oblivruin/jcu/misc"), vers = intArrayOf(9, 12))
+
+    BuildTool.addURL(layout.buildDirectory.dir("classes/java/main").get().asFile.toURI().toURL())
 }
 
 val util = project(":jcu-util") {
@@ -116,6 +122,8 @@ project(":build-tool") {
     dependencies {
         api(core)
     }
+
+    BuildTool.addURL(layout.buildDirectory.dir("classes/java/main").get().asFile.toURI().toURL())
 }
 
 fun Project.set(packages: Array<String>, requires: Array<String> = emptyArray(), vararg vers: Int) {
@@ -146,7 +154,11 @@ fun Project.set(packages: Array<String>, requires: Array<String> = emptyArray(),
                 attributes["Multi-Release"] = "true"
             }
         }
+
+        exclude("**/*\$\$\$\$*.class")
     }
+
+    tasks.register<Recompile>("recompile") {}
 
     val taskModInf = tasks.register<ModuleInfoTask>("genModuleInfo") {
         moduleName = this@set.group.toString()
@@ -172,6 +184,10 @@ fun Project.set(packages: Array<String>, requires: Array<String> = emptyArray(),
     for (ver in vers) {
         sourceSets.create("v$ver") {
             java.srcDir("shadow/v$ver")
+            val lib = rootProject.file("lib/jdk${ver}.jar")
+            if (lib.exists()) {
+                dependencies.add("v${ver}Implementation", files(lib))
+            }
             val compTask = tasks.named<JavaCompile>("compileV${ver}Java") {
                 val v = JavaVersion.toVersion(ver).toString()
                 sourceCompatibility = v

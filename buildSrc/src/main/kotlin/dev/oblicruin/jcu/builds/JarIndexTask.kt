@@ -69,8 +69,3 @@ abstract class JarIndexTask : SingleFileBuildTask() {
         }
     }
 }
-
-fun BufferedWriter.writeln(str: String) {
-    write(str)
-    newLine()
-}

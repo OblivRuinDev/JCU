@@ -17,12 +17,16 @@
 package dev.oblicruin.jcu.builds
 
 import org.gradle.api.DefaultTask
+import org.gradle.api.Task
 import org.gradle.api.tasks.AbstractCopyTask
 import org.gradle.api.tasks.TaskProvider
+import java.io.BufferedWriter
 
-abstract class SingleFileBuildTask : DefaultTask() {
+abstract class BuildTask: DefaultTask() {
     final override fun getGroup() = "build"
+}
 
+abstract class SingleFileBuildTask: BuildTask() {
     fun appendOutput(task: TaskProvider<out AbstractCopyTask>, into: String? = null) {
         if (into == null) {
             task.get().from(this.outputs.files.singleFile)
@@ -32,4 +36,9 @@ abstract class SingleFileBuildTask : DefaultTask() {
             }
         }
     }
+}
+
+fun BufferedWriter.writeln(str: String) {
+    write(str)
+    newLine()
 }
