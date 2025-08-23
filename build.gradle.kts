@@ -14,7 +14,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-@file:Suppress("Since15", "UnstableApiUsage")
+@file:Suppress("Since15", "UnstableApiUsage", "MemberVisibilityCanBePrivate", "UNCHECKED_CAST")
 
 import java.io.BufferedWriter
 import java.io.DataOutputStream
@@ -25,6 +25,7 @@ import java.net.URLClassLoader
 import java.nio.file.Files
 import java.util.*
 import java.util.function.Consumer
+import java.util.regex.Pattern
 
 plugins {
     `java-platform`
@@ -61,41 +62,31 @@ val core = project(":jcu-core") {
     description = "Core API for classfile"
     group = "dev.oblivruin.jcu.core"
 
-
     set(arrayOf("dev/oblivruin/jcu", "dev/oblivruin/jcu/constant", "dev/oblivruin/jcu/internal", "dev/oblivruin/jcu/misc"), vers = intArrayOf(9, 12))
-    ToolLoader.instance.addURL(layout.buildDirectory.dir("classes/java/main").get().asFile.toURI().toURL())
+
+    BuildTool.register(this)
 }
 
 val util = project(":jcu-util") {
     description = "Provide extra help for check, (de)serialize"
     group = "dev.oblivruin.jcu.util"
 
-    dependencies {
-        api(core)
-    }
-
-    set(arrayOf("dev/oblivruin/jcu/attribute", "dev/oblivruin/jcu/constant/helper"), arrayOf(core.group.toString()))
+    set(arrayOf("dev/oblivruin/jcu/attribute", "dev/oblivruin/jcu/constant/helper"), core)
 }
 
 val common = project(":jcu-common") {
     group = "dev.oblivruin.jcu.common"
-    dependencies {
-        api(core)
-    }
 
-    set(arrayOf("dev/oblivruin/jcu/attribute", "dev/oblivruin/jcu/constant/helper"), arrayOf(core.group.toString()))
+    set(arrayOf("dev/oblivruin/jcu/attribute", "dev/oblivruin/jcu/constant/helper"), core)
+
+    BuildTool.register(this)
 }
 
-val asm = project(":jcu-asm") {
+project(":jcu-asm") {
     description = "Asm-style API"
     group = "dev.oblivruin.jcu.asm"
 
-    dependencies {
-        api(core)
-        api(util)
-    }
-
-    set(arrayOf("dev/oblivruin/jcu/asm"), arrayOf(core.group.toString(), util.group.toString()))
+    set(arrayOf("dev/oblivruin/jcu/asm"), core, util)
 }
 
 project(":test-tool") {
@@ -123,11 +114,15 @@ project(":build-tool") {
 
     dependencies {
         api(core)
+        api(common)
     }
-    ToolLoader.instance.addURL(layout.buildDirectory.dir("classes/java/main").get().asFile.toURI().toURL())
+
+    BuildTool.register(this)
 }
 
-fun Project.set(packages: Array<String>, requires: Array<String> = emptyArray(), vararg vers: Int) {
+fun Project.set(packages: Array<String>, vararg requires: Project) = set(packages, requires)
+
+fun Project.set(packages: Array<String>, requires: Array<out Project> = emptyArray(), vararg vers: Int) {
     dependencies {
         val testRuntimeOnly by configurations
         val testImplementation by configurations
@@ -138,6 +133,10 @@ fun Project.set(packages: Array<String>, requires: Array<String> = emptyArray(),
         testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
         api(project(":build-api"))
+
+        for (project in requires) {
+            api(project)
+        }
     }
 
     tasks.named<Test>("test") {
@@ -159,13 +158,24 @@ fun Project.set(packages: Array<String>, requires: Array<String> = emptyArray(),
         exclude("**/*\$\$\$\$*.class")
     }
 
-    tasks.register<Recompile>("recompile") {}
+    val rename = tasks.register<Rename>("rename") {
+        inputs.files(project.layout.buildDirectory.dir("classes/java/main").get().asFileTree.matching {
+            include("**/*\$\$\$\$*.class")
+        })
+        mustRunAfter("compileJava")
+    }
+
+    tasks.named("classes") {
+        finalizedBy(rename)
+    }
 
     val taskModInf = tasks.register<ModuleInfoTask>("genModuleInfo") {
         moduleName = this@set.group.toString()
         moduleVer = version.toString()
         exports = packages
-        this.requires = requires
+        for (re in requires) {
+            this.requires.add(re.group.toString())
+        }
         defOutput()
         appendOutput(taskJar)
     }
@@ -202,6 +212,12 @@ fun Project.set(packages: Array<String>, requires: Array<String> = emptyArray(),
                 from(output) {
                     into("META-INF/versions/$ver")
                 }
+            }
+            rename.configure {
+                mustRunAfter(compTask)
+                inputs.files(compTask.get().outputs.files.asFileTree.matching {
+                    include("**/*\$\$\$\$*.class")
+                })
             }
         }
     }
@@ -286,7 +302,7 @@ abstract class ModuleInfoTask: SingleFileBuildTask() {
     abstract val exports: Property<Array<String>>
 
     @get:Input
-    abstract val requires: Property<Array<String>>
+    abstract val requires: ListProperty<String>
 
     fun defOutput() {
         outputs.files(project.layout.buildDirectory.dir("generated/module").get().file("module-info.class"))
@@ -377,39 +393,49 @@ abstract class ModuleInfoTask: SingleFileBuildTask() {
     }
 }
 
-class ToolLoader private constructor(): URLClassLoader(emptyArray(), ToolLoader::class.java.classLoader) {
+class BuildTool private constructor(): URLClassLoader(emptyArray(), BuildTool::class.java.classLoader) {
     companion object {
         init {
             ClassLoader.registerAsParallelCapable()
         }
 
-        @JvmStatic
-        val instance = ToolLoader()
+        val loader = BuildTool()
 
-        @Suppress("UNCHECKED_CAST")
+        val recompileC by lazy {
+            loader.findClass("dev.oblivruin.jcu.builds.Recompile").getConstructor(File::class.java) as Constructor<Consumer<File>>
+        }
+
         val renameC by lazy {
-            instance.findClass("dev.oblivruin.jcu.builds.Rename").getConstructor(File::class.java) as Constructor<Consumer<File>>
+            loader.findClass("dev.oblivruin.jcu.builds.Rename").getConstructor(File::class.java) as Constructor<Consumer<File>>
+        }
+
+        fun register(project: Project) {
+            loader.addURL(project.layout.buildDirectory.dir("classes/java/main").get().asFile.toURI().toURL())
         }
     }
 
     public override fun addURL(url: URL) = super.addURL(url)
+
+    public override fun findClass(name: String): Class<*> = super.findClass(name)
 }
 
 @Suppress("LeakingThis")
 abstract class BuildToolTask: BuildTask() {
     init {
-        dependsOn(project.rootProject.project("jcu-core").tasks.findByName("compileJava"), project.rootProject.project("build-tool").tasks.findByName("compileJava"))
+        dependsOn(compileTask("jcu-core"), compileTask("jcu-common"), compileTask("build-tool"))
     }
+
+    fun compileTask(project: String) = this.project.rootProject.project(project).tasks.findByName("compileJava")
 }
 
 @CacheableTask
-abstract class Recompile: BuildToolTask() {
+abstract class Rename: BuildToolTask() {
     init {
         outputs.dir(project.layout.buildDirectory.dir("generated/classres").get())
     }
 
     @TaskAction
     fun exec() {
-        inputs.files.forEach(ToolLoader.renameC.newInstance(project.layout.buildDirectory.dir("generated/classres").get().asFile))
+        inputs.files.forEach(BuildTool.renameC.newInstance(project.layout.buildDirectory.dir("generated/classres").get().asFile))
     }
 }
