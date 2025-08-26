@@ -18,7 +18,7 @@ package dev.oblivruin.jcu;
 
 import dev.oblivruin.jcu.constant.Tag;
 import dev.oblivruin.jcu.misc.ByteArray;
-import dev.oblivruin.jcu.misc.BytesUtil;
+import dev.oblivruin.jcu.internal.BytesUtil;
 import dev.oblivruin.jcu.misc.IntArray;
 
 import java.io.IOException;

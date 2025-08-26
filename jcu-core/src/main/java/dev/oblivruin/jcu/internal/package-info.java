@@ -15,7 +15,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 /**
- * Internal api, use as your own risk.
+ * Internal api, use as your own risk.<br>
+ * Not exports to public as them may damage the
+ * security and integrality of Java Virtual Machine.
  *
  * @author OblivRuinDev
  */

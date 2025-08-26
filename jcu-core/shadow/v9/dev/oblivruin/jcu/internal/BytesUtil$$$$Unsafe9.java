@@ -14,68 +14,61 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package dev.oblivruin.jcu.misc;
+package dev.oblivruin.jcu.internal;
 
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.VarHandle;
-import java.nio.ByteOrder;
-// Ignore this import error as it will be handled by the compiler
-import jdk.internal.vm.annotation.ForceInline;
+import jdk.internal.misc.Unsafe;
 
 /**
- * More efficient implementation in JDK9
+ * Implement by {@link jdk.internal.misc.Unsafe}
  */
-public final class BytesUtil {
-    private BytesUtil() {}
-    public static final VarHandle v2 = MethodHandles.byteArrayViewVarHandle(short[].class, ByteOrder.BIG_ENDIAN);
-    public static final VarHandle v4 = MethodHandles.byteArrayViewVarHandle(int[].class, ByteOrder.BIG_ENDIAN);
-    public static final VarHandle v8 = MethodHandles.byteArrayViewVarHandle(long[].class, ByteOrder.BIG_ENDIAN);
-    @ForceInline
+public class BytesUtil$$$$Unsafe9 {
+    private static final Unsafe u = Unsafe.getUnsafe();
+
     public static void setShort(byte[] bytes, int off, short v) {
-        v2.set(bytes, off, v);
+        u.putShortUnaligned(bytes, Unsafe.ARRAY_BYTE_BASE_OFFSET + off, v, true);
     }
-    @ForceInline
+
     public static short getShort(byte[] bytes, int off) {
-        return (short) v2.get(bytes, off);
+        return u.getShortUnaligned(bytes, Unsafe.ARRAY_BYTE_BASE_OFFSET + off, true);
     }
-    @ForceInline
+
     public static boolean matchShort(byte[] bytes, int off, short v) {
-        return v == (short) v2.get(bytes, off);
+        return bytes[off] == (byte) (v >>> 8) && bytes[off+1] == (byte) v;
     }
-    @ForceInline
+
     public static void setUShort(byte[] bytes, int off, int v) {
-        v2.set(bytes, off, (short) v);
+        setShort(bytes, off, (short) v);
     }
-    @ForceInline
+
     public static int getUShort(byte[] bytes, int off) {
-        return ((short) v2.get(bytes, off)) & 0xFFFF;
+        return getShort(bytes, off) & 0xFFFF;
     }
-    @ForceInline
-    public static boolean matchUShort(byte bytes, int off, int v) {
-        return (short) v == (short) v2.get(bytes, off);
+
+    public static boolean matchUShort(byte[] bytes, int off, int v) {
+        return bytes[off] == (byte) (v >>> 8) && bytes[off+1] == (byte) v;
     }
-    @ForceInline
+
     public static void setInt(byte[] bytes, int off, int v) {
-        v4.set(bytes, off, v);
+        u.putIntUnaligned(bytes, Unsafe.ARRAY_BYTE_BASE_OFFSET + off, v, true);
     }
-    @ForceInline
+
     public static int getInt(byte[] bytes, int off) {
-        return (int) v4.get(bytes, off);
+        return u.getIntUnaligned(bytes, Unsafe.ARRAY_BYTE_BASE_OFFSET + off, true);
     }
-    @ForceInline
+
     public static boolean matchInt(byte[] bytes, int off, int v) {
-        return v == (int) v4.get(bytes, off);
+        return getInt(bytes, off) == v;
     }
-    @ForceInline
+
     public static void setLong(byte[] bytes, int off, long v) {
-        v8.set(bytes, off, v);
+        u.putLongUnaligned(bytes, Unsafe.ARRAY_BYTE_BASE_OFFSET + off, v, true);
     }
-    @ForceInline
+
     public static long getLong(byte[] bytes, int off) {
-        return (long) v8.get(bytes, off);
+        return u.getLongUnaligned(bytes, Unsafe.ARRAY_BYTE_BASE_OFFSET + off, true);
     }
-    @ForceInline
+
     public static boolean matchLong(byte[] bytes, int off, long v) {
-        return v == (long) v8.get(bytes, off);
+        return getLong(bytes, off) == v;
     }
 }

@@ -17,7 +17,7 @@
 package dev.oblivruin.jcu;
 
 import dev.oblivruin.jcu.misc.ByteArray;
-import dev.oblivruin.jcu.misc.BytesUtil;
+import dev.oblivruin.jcu.internal.BytesUtil;
 
 /**
  * A low-level writer for building the content of attributes structure.

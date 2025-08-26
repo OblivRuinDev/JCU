@@ -42,15 +42,28 @@ public final class Rename extends DataOutputStream implements Consumer<File> {
             byte[] bytes = new byte[input.available()];
             input.read(bytes);
             ClassFileReader reader = new ClassFileReader(bytes);
+
             int thisUtf8Index = reader.ref1Index(reader.readU2(reader.header + 2));
-            String origin = reader.utf8V(thisUtf8Index);
-            String newName = origin.substring(0, origin.indexOf("$$$$"));
-            try (FileOutputStream output = new FileOutputStream(new File(root, newName.substring(newName.lastIndexOf('/') + 1)))) {
+            String oldThis = reader.utf8V(thisUtf8Index);
+            String newThis = oldThis.substring(0, oldThis.indexOf("$$$$"));
+            int descIndex = reader.findUtf8('L' + oldThis + ';');
+            try (FileOutputStream output = new FileOutputStream(new File(root, oldThis.substring(oldThis.lastIndexOf('/') + 1)))) {
                 this.output = output;
-                output.write(bytes, 0, reader.offset(thisUtf8Index) + 1);
-                super.writeUTF(newName);
-                int offset = reader.offset(thisUtf8Index + 1);
-                output.write(bytes, offset, bytes.length - offset);
+                if (thisUtf8Index < descIndex) {
+                    output.write(bytes, 0, reader.offset(thisUtf8Index) + 1);
+                    super.writeUTF(newThis);
+                    int off = reader.offset(thisUtf8Index + 1);
+                    output.write(bytes, off, reader.offset(descIndex) + 1 - off);
+                    super.writeUTF('L' + newThis + ';');
+                    output.write(bytes, off = reader.offset(descIndex + 1), bytes.length - off);
+                } else {
+                    output.write(bytes, 0, reader.offset(descIndex) + 1);
+                    super.writeUTF('L' + newThis + ';');
+                    int off = reader.offset(descIndex + 1);
+                    output.write(bytes, off, reader.offset(thisUtf8Index) + 1 - off);
+                    super.writeUTF(newThis);
+                    output.write(bytes, off = reader.offset(thisUtf8Index + 1), bytes.length - off);
+                }
             } finally {
                 this.output = null;
             }

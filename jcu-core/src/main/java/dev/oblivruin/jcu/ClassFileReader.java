@@ -17,7 +17,7 @@
 package dev.oblivruin.jcu;
 
 import dev.oblivruin.jcu.constant.Tag;
-import dev.oblivruin.jcu.misc.BytesUtil;
+import dev.oblivruin.jcu.internal.BytesUtil;
 import jdk.internal.vm.annotation.Stable;
 
 import java.nio.charset.StandardCharsets;
@@ -129,7 +129,7 @@ public class ClassFileReader implements IConstantPool, IntFunction<char[]> {
             return 0;
         }
         int index = 0;
-        while ((index = findTag(String, ++index)) != -1) {
+        while ((index = findTag(Utf8, ++index)) != -1) {
             java.lang.String str = utf8Cache[index];
             if (value.equals(str != null ? str : (utf8Cache[index] = utf8V(index)))) {
                 return index;
@@ -221,7 +221,7 @@ public class ClassFileReader implements IConstantPool, IntFunction<char[]> {
     public int findTag(int tag, int off) {
         for (int len = cpInfo.length; off < len; ++off) {
             if (bytes[cpInfo[off] - 1] == tag) {
-                return len;
+                return off;
             }
         }
         return -1;
@@ -457,6 +457,10 @@ public class ClassFileReader implements IConstantPool, IntFunction<char[]> {
 
     public final int readInt(int index) {
         return BytesUtil.getInt(bytes, index);
+    }
+
+    public final int offset(int index) {
+        return cpInfo[index] - 1;
     }
 
     @Override

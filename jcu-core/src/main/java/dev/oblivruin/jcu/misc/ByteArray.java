@@ -16,6 +16,8 @@
 // limitations under the License.
 package dev.oblivruin.jcu.misc;
 
+import dev.oblivruin.jcu.internal.BytesUtil;
+
 import java.util.Arrays;
 
 public class ByteArray extends Array {

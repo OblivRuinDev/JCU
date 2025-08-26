@@ -25,7 +25,6 @@ import java.net.URLClassLoader
 import java.nio.file.Files
 import java.util.*
 import java.util.function.Consumer
-import java.util.regex.Pattern
 
 plugins {
     `java-platform`
@@ -144,6 +143,13 @@ fun Project.set(packages: Array<String>, requires: Array<out Project> = emptyArr
         maxParallelForks = 8
     }
 
+    val rename = tasks.register<Rename>("rename") {
+        inputs.files(project.layout.buildDirectory.dir("classes/java/main").get().asFileTree.matching {
+            include("**/*\$\$\$\$*.class")
+        })
+        mustRunAfter("compileJava")
+    }
+
     val taskJar = tasks.named<Jar>("jar") {
         isPreserveFileTimestamps = false
 
@@ -156,13 +162,9 @@ fun Project.set(packages: Array<String>, requires: Array<out Project> = emptyArr
         }
 
         exclude("**/*\$\$\$\$*.class")
-    }
-
-    val rename = tasks.register<Rename>("rename") {
-        inputs.files(project.layout.buildDirectory.dir("classes/java/main").get().asFileTree.matching {
-            include("**/*\$\$\$\$*.class")
-        })
-        mustRunAfter("compileJava")
+        from(rename.get().outputs) {
+            into("fastC/")
+        }
     }
 
     tasks.named("classes") {
@@ -172,7 +174,7 @@ fun Project.set(packages: Array<String>, requires: Array<out Project> = emptyArr
     val taskModInf = tasks.register<ModuleInfoTask>("genModuleInfo") {
         moduleName = this@set.group.toString()
         moduleVer = version.toString()
-        exports = packages
+        pkg = packages
         for (re in requires) {
             this.requires.add(re.group.toString())
         }
@@ -299,7 +301,7 @@ abstract class ModuleInfoTask: SingleFileBuildTask() {
     abstract val moduleVer: Property<String>
 
     @get:Input
-    abstract val exports: Property<Array<String>>
+    abstract val pkg: Property<Array<String>>
 
     @get:Input
     abstract val requires: ListProperty<String>
@@ -317,17 +319,18 @@ abstract class ModuleInfoTask: SingleFileBuildTask() {
             dos.writeInt(53)//version
             val buffer = ByteArray(3)
             buffer[1] = 0
-            val exports = this.exports.get()
+            val pkgs = this.pkg.get()
             val requires = this.requires.get()
-            val exportSize = exports.size
-            if (exports.size + requires.size > 123) {
+            val pkgCount = pkgs.size
+            val reqCount = requires.size
+            if (pkgCount + reqCount > 123) {
                 throw IndexOutOfBoundsException("This script only support constant count <= 255")
             }
-            dos.writeShort(10 + (exports.size + requires.size) * 2)
+            dos.writeShort(10 + (pkgs.size + reqCount) * 2)
             // #1 Utf8    module-info
             dos.write(1); dos.writeUTF("module-info")
             // #2 Class   #1       | #3 Utf8    Module
-            dos.writeInt(0x07000101); dos.writeUTF("Module")
+            dos.writeInt(0x070001_01); dos.writeUTF("Module")
             // #4 Utf8    ModulePackages
             dos.write(1); dos.writeUTF("ModulePackages")
             // #5 Utf8    $moduleName
@@ -352,42 +355,58 @@ abstract class ModuleInfoTask: SingleFileBuildTask() {
                 dos.write(buffer)
             }
             buffer[0] = 20//package
-            for (str in exports) {
+            var internal = -1
+            for (str in pkgs) {
                 // Utf8
                 dos.write(1); dos.writeUTF(str)
                 // Package
-                buffer[2] = (buffer[2] + 2).toByte()
+                val v = buffer[2] + 2
+                if (str.endsWith("internal")) {
+                    internal = v + 1
+                }
+                buffer[2] = v.toByte()
                 dos.write(buffer)
             }
             dos.writeShort(0x8000)// access
             dos.writeShort(2)// this
             dos.writeLong(0)// super, interface, field, method
             dos.writeInt(0x0002_0003)// attribute count and 1st attr name index
-            dos.writeInt(22 + (exportSize + requires.size) * 6)// length
+            if (internal == -1) {
+                dos.writeInt(22 + (pkgCount + reqCount) * 6)// length
+            } else {
+                dos.writeInt(16 + (pkgCount + reqCount) * 6)// length
+            }
             dos.writeShort(6)// name index
             dos.writeInt(7)// flag, version
-            dos.writeShort(requires.size + 1)// require count
-            dos.writeInt(0x0008_9000); dos.writeShort(0)// "java.base" ACC_MANDATED
+            dos.writeShort(reqCount + 1)// require count
+            dos.writeInt(0x0009_8000); dos.writeShort(0)// "java.base" ACC_MANDATED
             var pos = 11
-            for (index in 1..requires.size) {
+            for (index in 1..reqCount) {
                 dos.writeShort(pos)
                 dos.writeInt(0)
                 pos+=2
             }
-            dos.writeShort(exportSize)// export count
-            val array = ByteArray(exportSize*2)
+            // export count
+            if (internal == -1) {
+                dos.writeShort(pkgCount)
+            } else {
+                dos.writeShort(pkgCount - 1)
+            }
+            val array = ByteArray(pkgCount*2)
             var pointer = -1
-            for (index in 1..exportSize) {
-                dos.writeShort(pos)
+            for (index in 1..pkgCount) {
+                if (pos != internal) {
+                    dos.writeShort(pos)
+                    dos.writeInt(0)
+                }
                 array[++pointer] = 0
                 array[++pointer] = pos.toByte()
-                dos.writeInt(0)
                 pos+=2
             }
             dos.writeInt(0)// open, use  count
             dos.writeInt(4)// provide count and 2nd attr name index
-            dos.writeInt(2 + exportSize*2)
-            dos.writeShort(exportSize)
+            dos.writeInt(2 + pkgCount*2)
+            dos.writeShort(pkgCount)
             dos.write(array)
         }
     }
@@ -431,11 +450,11 @@ abstract class BuildToolTask: BuildTask() {
 @CacheableTask
 abstract class Rename: BuildToolTask() {
     init {
-        outputs.dir(project.layout.buildDirectory.dir("generated/classres").get())
+        outputs.dir(project.layout.buildDirectory.dir("generated/fastC").get())
     }
 
     @TaskAction
     fun exec() {
-        inputs.files.forEach(BuildTool.renameC.newInstance(project.layout.buildDirectory.dir("generated/classres").get().asFile))
+        inputs.files.forEach(BuildTool.renameC.newInstance(project.layout.buildDirectory.dir("generated/fastC").get().asFile))
     }
 }
