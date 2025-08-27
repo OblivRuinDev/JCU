@@ -197,9 +197,12 @@ fun Project.set(packages: Array<String>, requires: Array<out Project> = emptyArr
     for (ver in vers) {
         sourceSets.create("v$ver") {
             java.srcDir("shadow/v$ver")
-            val lib = rootProject.file("lib/jdk${ver}.jar")
-            if (lib.exists()) {
-                dependencies.add("v${ver}Implementation", files(lib))
+            dependencies {
+                val lib = rootProject.file("lib/jdk/$ver")
+                if (lib.exists() && lib.isDirectory) {
+                    add("v${ver}Implementation", files(lib))
+                }
+                add("v${ver}Implementation", this@set)
             }
             val compTask = tasks.named<JavaCompile>("compileV${ver}Java") {
                 val v = JavaVersion.toVersion(ver).toString()

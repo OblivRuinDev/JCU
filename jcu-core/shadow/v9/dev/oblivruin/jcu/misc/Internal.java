@@ -16,6 +16,7 @@
 // limitations under the License.
 package dev.oblivruin.jcu.misc;
 
+import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -26,27 +27,38 @@ import java.security.*;
 public final class Internal {
     private Internal() {}
 
-    @SuppressWarnings("DataFlowIssue")
     public static void loadFastC() {
         try {
             MethodHandles.Lookup lookup = MethodHandles.privateLookupIn(Object.class, MethodHandles.lookup());
+            Module java = Object.class.getModule();
+            Module self = Internal.class.getModule();
             ClassLoader loader = Internal.class.getClassLoader();
+            PermissionCollection perm = Internal.class.getProtectionDomain().getPermissions();
             MethodHandle handle = lookup.findVirtual(ClassLoader.class, "defineClass",
                     MethodType.methodType(Class.class, new Class[]{String.class, byte[].class, int.class, int.class, ProtectionDomain.class}));
-            PermissionCollection perm = Internal.class.getProtectionDomain().getPermissions();
-            URL url = loader.getResource("/fastC/BytesUtil$$$$Unsafe9");
-            byte[] bytes;
-            int len;
-            try (InputStream in = url.openConnection().getInputStream()) {
-                bytes = new byte[len = in.available()];
-                in.read(bytes);
-                Class<?> ignored = (Class<?>) handle.invokeExact(loader, "dev.oblivruin.jcu.internal.BytesUtil", bytes, 0, len,
-                        new ProtectionDomain(new CodeSource(url, (CodeSigner[]) null), perm, loader, null));
-            } catch (VirtualMachineError vmError) {
-                throw vmError;
-            } catch (Throwable ignored) {
+            if (java.isExported("jdk/internal/misc", self)) {
+                doLoad(loader, handle, perm, "dev.oblivruin.jcu.internal.BytesUtil", "/fastC/BytesUtil$$$$9");
             }
-        } catch (ReflectiveOperationException ignored) {
+            doLoad(loader, handle, perm, "dev.oblivruin.jcu.internal.Strings", "/fastC/Strings$$$$9");
+
+        } catch (ReflectiveOperationException ex) {
+            ex.printStackTrace(System.err);
+        }
+    }
+
+    @SuppressWarnings("DataFlowIssue")
+    private static void doLoad(ClassLoader loader, MethodHandle handle, PermissionCollection perm , String className, String resName) {
+        URL url = loader.getResource(resName);
+        try (InputStream in = url.openStream()) {
+            ByteArrayOutputStream reader = new ByteArrayOutputStream(in.available());
+            in.transferTo(reader);
+            byte[] bytes = reader.toByteArray();
+            Class<?> ignored = (Class<?>) handle.invokeExact(loader, className, bytes, 0, bytes.length,
+                    new ProtectionDomain(new CodeSource(url, (CodeSigner[]) null), perm, loader, null));
+        } catch (VirtualMachineError vmError) {
+            throw vmError;
+        } catch (Throwable ex) {
+            ex.printStackTrace(System.err);
         }
     }
 }

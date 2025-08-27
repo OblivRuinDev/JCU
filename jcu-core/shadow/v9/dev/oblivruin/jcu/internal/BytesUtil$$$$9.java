@@ -21,7 +21,7 @@ import jdk.internal.misc.Unsafe;
 /**
  * Implement by {@link jdk.internal.misc.Unsafe}
  */
-public class BytesUtil$$$$Unsafe9 {
+public class BytesUtil$$$$9 {
     private static final Unsafe u = Unsafe.getUnsafe();
 
     public static void setShort(byte[] bytes, int off, short v) {
