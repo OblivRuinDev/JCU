@@ -26,6 +26,8 @@ import static java.lang.invoke.MethodType.*;
 
 /**
  * The extremely radical strategy for JDK 9 String.
+ * <br>
+ * Need module {@code java.base} open package {@code java.lang} to this.
  *
  * @author OblivRuinDev
  */
@@ -54,10 +56,6 @@ public final class Strings$$$$9 {
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    public static void toChars(String value, char[] buffer, int len) throws Throwable {
-        toChars.invokeExact((byte[]) getBytes.invokeExact(value), 0, buffer, 0, len);
     }
 
     public static int write(String value, ByteArray array) throws Throwable {

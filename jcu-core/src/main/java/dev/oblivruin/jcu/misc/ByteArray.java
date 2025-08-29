@@ -17,6 +17,7 @@
 package dev.oblivruin.jcu.misc;
 
 import dev.oblivruin.jcu.internal.BytesUtil;
+import dev.oblivruin.jcu.internal.Strings;
 
 import java.util.Arrays;
 
@@ -51,40 +52,7 @@ public class ByteArray extends Array {
      * @return the length of written bytes
      */
     public final int writeUtf8(String value) {
-        char[] chars = value.toCharArray();
-        int pointer = this.length - 1;
-        int len = chars.length;
-        ensureFree(len);
-        byte[] data = this.data;
-        for (int index = 0; index < len; ++index) {
-            char c = chars[index];
-            if (c != 0 && c < 0x80) {
-                data[++pointer] = (byte) c;
-            } else {
-                int v = 3*(len - index) + pointer + 1;
-                if (v > data.length) {
-                    System.arraycopy(data, 0, (data = new byte[newSize(v)]), 0, pointer + 1);
-                    this.data = data;
-                }
-                for (; index < len; ++index) {
-                    c = chars[index];
-                    if (c >= 0x800) {
-                        data[++pointer] = (byte) (0xE0 | c >> 12 & 0x0F);
-                        data[++pointer] = (byte) (0x80 | c >> 6  & 0x3F);
-                        data[++pointer] = (byte) (0x80 | c       & 0x3F);
-                    } else if (c >= 0x80 || c == 0) {
-                        data[++pointer] = (byte) (0xC0 | c >> 6 & 0x1F);
-                        data[++pointer] = (byte) (0x80 | c      & 0x3F);
-                    } else {
-                        data[++pointer] = (byte) c;
-                    }
-                }
-                len = 1 + pointer - this.length;
-                break;
-            }
-        }
-        this.length = 1 + pointer;
-        return len;
+        return Strings.write(value, this);
     }
 
     public final void add(byte b) {
@@ -146,7 +114,7 @@ public class ByteArray extends Array {
     }
 
     @Override
-    protected int newSize(int expected) {
+    public int newSize(int expected) {
         return Math.max(expected, data.length * 2);
     }
 

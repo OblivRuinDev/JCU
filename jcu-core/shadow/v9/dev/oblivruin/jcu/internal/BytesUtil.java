@@ -19,8 +19,6 @@ package dev.oblivruin.jcu.internal;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.nio.ByteOrder;
-// Ignore this import error as it will be handled by the compiler
-import jdk.internal.vm.annotation.ForceInline;
 
 /**
  * More efficient implementation in JDK9
@@ -30,51 +28,39 @@ public final class BytesUtil {
     public static final VarHandle v2 = MethodHandles.byteArrayViewVarHandle(short[].class, ByteOrder.BIG_ENDIAN);
     public static final VarHandle v4 = MethodHandles.byteArrayViewVarHandle(int[].class, ByteOrder.BIG_ENDIAN);
     public static final VarHandle v8 = MethodHandles.byteArrayViewVarHandle(long[].class, ByteOrder.BIG_ENDIAN);
-    @ForceInline
     public static void setShort(byte[] bytes, int off, short v) {
         v2.set(bytes, off, v);
     }
-    @ForceInline
     public static short getShort(byte[] bytes, int off) {
         return (short) v2.get(bytes, off);
     }
-    @ForceInline
     public static boolean matchShort(byte[] bytes, int off, short v) {
         return bytes[off] == (byte) (v >>> 8) && bytes[off+1] == (byte) v;
     }
-    @ForceInline
     public static void setUShort(byte[] bytes, int off, int v) {
         v2.set(bytes, off, (short) v);
     }
-    @ForceInline
     public static int getUShort(byte[] bytes, int off) {
         return ((short) v2.get(bytes, off)) & 0xFFFF;
     }
-    @ForceInline
     public static boolean matchUShort(byte[] bytes, int off, int v) {
         return bytes[off] == (byte) (v >>> 8) && bytes[off+1] == (byte) v;
     }
-    @ForceInline
     public static void setInt(byte[] bytes, int off, int v) {
         v4.set(bytes, off, v);
     }
-    @ForceInline
     public static int getInt(byte[] bytes, int off) {
         return (int) v4.get(bytes, off);
     }
-    @ForceInline
     public static boolean matchInt(byte[] bytes, int off, int v) {
         return v == (int) v4.get(bytes, off);
     }
-    @ForceInline
     public static void setLong(byte[] bytes, int off, long v) {
         v8.set(bytes, off, v);
     }
-    @ForceInline
     public static long getLong(byte[] bytes, int off) {
         return (long) v8.get(bytes, off);
     }
-    @ForceInline
     public static boolean matchLong(byte[] bytes, int off, long v) {
         return v == (long) v8.get(bytes, off);
     }

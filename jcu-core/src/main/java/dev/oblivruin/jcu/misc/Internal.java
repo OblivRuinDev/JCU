@@ -17,7 +17,9 @@
 package dev.oblivruin.jcu.misc;
 
 import dev.oblivruin.jcu.builds.api.shadow.SameHead;
+import dev.oblivruin.jcu.builds.api.shadow.Shadow;
 
+@Shadow
 public final class Internal {
     private Internal() {
     }

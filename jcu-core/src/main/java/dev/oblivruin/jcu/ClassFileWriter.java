@@ -17,6 +17,7 @@
 package dev.oblivruin.jcu;
 
 import dev.oblivruin.jcu.constant.Tag;
+import dev.oblivruin.jcu.internal.Strings;
 import dev.oblivruin.jcu.misc.ByteArray;
 import dev.oblivruin.jcu.internal.BytesUtil;
 import dev.oblivruin.jcu.misc.IntArray;
@@ -62,7 +63,7 @@ public class ClassFileWriter implements IRawClassVisitor, IConstantPool {//todo:
      */
     protected final ByteArray head = new ByteArray() {
         @Override
-        protected int newSize(int expected) {
+        public int newSize(int expected) {
             return Math.max(expected, this.length > 10000 ? this.data.length + 4800 : this.data.length * 2);// avoid data inflation
         }
     };
@@ -89,7 +90,7 @@ public class ClassFileWriter implements IRawClassVisitor, IConstantPool {//todo:
      */
     protected final ByteArray meth = new ByteArray(0) {
         @Override
-        protected int newSize(int expected) {
+        public int newSize(int expected) {
             return this.length == 0 ? 100 : super.newSize(expected);
         }
     };
@@ -166,7 +167,7 @@ public class ClassFileWriter implements IRawClassVisitor, IConstantPool {//todo:
         int pos = head.length;
         // reserve for tag and length
         head.length+=3;
-        int len = head.writeUtf8(value);
+        int len = Strings.write(value, head);
         if (len > 65535) {
             throw new Utf8TooLongException(cpInfo.length, value, len);
         }

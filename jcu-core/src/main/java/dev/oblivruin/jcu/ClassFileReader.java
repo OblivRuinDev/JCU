@@ -31,7 +31,6 @@ import static dev.oblivruin.jcu.constant.Tag.*;
  * @author OblivRuinDev
  */
 public class ClassFileReader implements IConstantPool, IntFunction<char[]> {
-    // Stable Member Declare Start
     /**
      * Point to each constant entry tag <b>plus 1</b>.
      * <br>
