@@ -36,7 +36,7 @@ public final class Internal {
             PermissionCollection perm = Internal.class.getProtectionDomain().getPermissions();
             MethodHandle handle = lookup.findVirtual(ClassLoader.class, "defineClass",
                     MethodType.methodType(Class.class, new Class[]{String.class, byte[].class, int.class, int.class, ProtectionDomain.class}));
-            if (java.isExported("jdk/internal/misc", self)) {
+            if (java.isExported("jdk.internal.misc", self)) {
                 doLoad(loader, handle, perm, "dev.oblivruin.jcu.internal.BytesUtil", "/fastC/BytesUtil$$$$9");
             }
             doLoad(loader, handle, perm, "dev.oblivruin.jcu.internal.Strings", "/fastC/Strings$$$$9");
@@ -48,7 +48,7 @@ public final class Internal {
 
     @SuppressWarnings("DataFlowIssue")
     private static void doLoad(ClassLoader loader, MethodHandle handle, PermissionCollection perm , String className, String resName) {
-        URL url = loader.getResource(resName);
+        URL url = Internal.class.getResource(resName);
         try (InputStream in = url.openStream()) {
             ByteArrayOutputStream reader = new ByteArrayOutputStream(in.available());
             in.transferTo(reader);

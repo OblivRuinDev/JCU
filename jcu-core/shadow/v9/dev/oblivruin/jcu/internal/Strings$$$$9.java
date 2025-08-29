@@ -34,7 +34,7 @@ import static java.lang.invoke.MethodType.*;
 public final class Strings$$$$9 {
     private static final MethodHandle isLatin1;
     private static final MethodHandle getBytes;
-    private static final MethodHandle toChars;
+//    private static final MethodHandle toChars;
     public static final int HI;
     public static final int LO;
     static {
@@ -49,10 +49,10 @@ public final class Strings$$$$9 {
             MethodHandles.Lookup lookup = MethodHandles.privateLookupIn(String.class, MethodHandles.lookup());
             isLatin1 = lookup.findVirtual(String.class, "isLatin1", methodType(boolean.class));
             getBytes = lookup.findGetter(String.class, "value", byte[].class);
-            toChars = lookup.findStatic(Class.forName("java.lang.StringLatin1"),
-                    "inflate",
-                    methodType(void.class,
-                            new Class[]{byte[].class, int.class, char[].class, int.class, int.class}));
+//            toChars = lookup.findStatic(Class.forName("java.lang.StringLatin1"),
+//                    "inflate",
+//                    methodType(void.class,
+//                            new Class[]{byte[].class, int.class, char[].class, int.class, int.class}));
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);
         }

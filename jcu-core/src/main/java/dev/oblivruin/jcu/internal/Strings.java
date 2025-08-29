@@ -22,7 +22,7 @@ import dev.oblivruin.jcu.misc.ByteArray;
 
 /**
  * Common implementation which using standard Java API, there are more efficient implementations
- * specifically tailored for the internal workings of the JDK.
+ * specifically tailored for JDK internal.
  *
  * @author OblivRuinDev
  */
