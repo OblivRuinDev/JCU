@@ -22,6 +22,11 @@ package dev.oblivruin.jcu.constant;
  * If a constant field's Javadoc contains a {@code @see} reference to a class, it indicates a loadable constant
  * (see <a href="https://docs.oracle.com/javase/specs/jvms/se24/html/jvms-4.html#jvms-4.4-310">JVMS 4.4-C</a>).
  *
+ * <p>
+ * This documentation includes content derived from the Java Virtual Machine Specification (JVMS)
+ * for accuracy and completeness. Original JVMS content is copyrighted by Oracle and/or its affiliates.
+ * </p>
+ *
  * @see <a href="https://docs.oracle.com/javase/specs/jvms/se24/html/jvms-4.html#jvms-4.4">JVMS
  *     4.4</a>
  * @author OblivRuinDev

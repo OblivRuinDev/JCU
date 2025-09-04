@@ -70,7 +70,7 @@ val util = project(":jcu-util") {
     description = "Provide extra help for check, (de)serialize"
     group = "dev.oblivruin.jcu.util"
 
-    set(arrayOf("dev/oblivruin/jcu/attribute", "dev/oblivruin/jcu/constant/helper"), core)
+    set(arrayOf("dev/oblivruin/jcu/attribute", "dev/oblivruin/jcu/constant/helper", "dev/oblivruin/jcu/util"), core)
 }
 
 val common = project(":jcu-common") {

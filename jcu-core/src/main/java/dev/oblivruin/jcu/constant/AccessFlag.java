@@ -38,8 +38,6 @@ package dev.oblivruin.jcu.constant;
  *         ...
  *     }
  * </pre></blockquote>
- * <br>
- * Note: The javadoc for Constant Members may have referred to the Java Virtual Machine Specifications and made some adjustments.
  *
  * <table class="striped" style="text-align:left">
  * <caption>Constant Member Usage</caption>
@@ -186,7 +184,12 @@ package dev.oblivruin.jcu.constant;
  *         <td>√</td>
  *         <td>√</td>
  *         <td>√</td></tr>
- * </tbody>
+ * </tbody></table>
+ *
+ * <p>
+ * This documentation includes content derived from the Java Virtual Machine Specification (JVMS)
+ * for accuracy and completeness. Original JVMS content is copyrighted by Oracle and/or its affiliates.
+ * </p>
  *
  * @author OblivRuinDev
  */
@@ -305,7 +308,7 @@ public final class AccessFlag {
     /**
      * Indicates that thing was not explicitly or implicitly declared in the source declaration.
      * <br>
-     * @Target: ALL
+     * @Target: All
      */
     public static final int ACC_SYNTHETIC    = 0x1000;
     /**

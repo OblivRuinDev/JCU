@@ -14,15 +14,23 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package dev.oblivruin.jcu.constant;
+package dev.oblivruin.jcu;
 
-public final class RuntimeConstant {
-    public static final int CURRENT_CLASS_VERSION;
-    static {
-        String str = System.getProperty("java.class.version");
-        int dot = str.indexOf('.');
-        CURRENT_CLASS_VERSION = (Integer.parseInt(str.substring(dot + 1)) << 16)
-                | Integer.parseInt(str.substring(0, dot));
+/**
+ * Thrown to indicate that given descriptor is illegal.
+ *
+ * @author OblivRuinDev
+ */
+public class IllegalDescException extends ValidateException {
+    /**
+     * The problematic descriptor
+     */
+    public final String desc;
+    public IllegalDescException(String desc, String message) {
+        super(message);
+        this.desc = desc;
     }
-    private RuntimeConstant() {}
+    public IllegalDescException(String message) {
+        this(null, message);
+    }
 }

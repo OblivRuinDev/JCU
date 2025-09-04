@@ -16,6 +16,14 @@
 // limitations under the License.
 package dev.oblivruin.jcu.constant;
 
+/**
+ * <p>
+ * This documentation includes content derived from the Java Virtual Machine Specification (JVMS)
+ * for accuracy and completeness. Original JVMS content is copyrighted by Oracle and/or its affiliates.
+ * </p>
+ *
+ * @author OblivRuinDev
+ */
 public final class TargetType {//todo: rename for its bad name
     private TargetType() {}
     /**

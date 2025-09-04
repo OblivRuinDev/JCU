@@ -41,7 +41,7 @@ public abstract class ObjArray<T> extends Array {
         int i = length + size;
         if (i >= data.length) {
             System.arraycopy(data, 0,
-                    (data = newArray(Math.max(i, data.length * 2))), 0, length);
+                    (data = newArray(newSize(i))), 0, length);
         }
     }
 
@@ -50,11 +50,16 @@ public abstract class ObjArray<T> extends Array {
         int i = length + size;
         if (i >= data.length) {
             System.arraycopy(data, 0,
-                    (data = newArray(Math.max(i, data.length * 2))), 0,
+                    (data = newArray(newSize(i))), 0,
                     length);
             return true;
         }
         return false;
+    }
+
+    @Override
+    protected int newSize(int expected) {
+        return Math.max(expected, data.length * 2);
     }
 
     public abstract T[] newArray(int length);
