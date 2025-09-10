@@ -177,9 +177,7 @@ public final class AttributeNames {
                             = "ModuleMainClass";
 
     /**
-     * Seem not publish in jvms, but I found in javap.
-     * <br>
-     * It points to an utf8 index.
+     * The structure of this attribute was deduced through reverse engineering of {@code module-info}.
      * <br>
      * Utf8 possible values: {@code "windows-amd64"}
      * @since 9

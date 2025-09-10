@@ -27,11 +27,10 @@ import dev.oblivruin.jcu.internal.BytesUtil;
  * Provides methods for writing primitive values and {@link #array} for complex writing.
  *
  * <p>Attributes structure:</p>
- * <pre class="screen">
- * {
+ * <pre>{@code {
  *     u2 attributes_count;
  *     attribute_info attributes[attributes_count];
- * }</pre>
+ * }}</pre>
  *
  * @author OblivRuinDev
  */

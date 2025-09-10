@@ -29,12 +29,12 @@ public interface IRawAttributable {
      * Visits an attribute with custom binary data.
      * <br>
      * The resulting attribute structure is:
-     * <pre class="screen">
+     * <pre>{@code
      * attribute_info {
      *     u2 attribute_name_index;  // = nameIndex
      *     u4 attribute_length;      // = len
      *     u1 info[attribute_length];// = Arrays.copyOfRange(data, off, off + len)
-     * }</pre>
+     * }}</pre>
      *
      * @param nameIndex index of a {@code CONSTANT_Utf8_info} entry which represents the attribute name
      * @param off starting offset of the attribute data within the {@code data} array(inclusive).
@@ -47,12 +47,12 @@ public interface IRawAttributable {
      * Visits a fixed-length attribute storing a 16-bit value (e.g. {@code ConstantValue}).
      * <br>
      * The resulting attribute structure is:
-     * <pre class="screen">
+     * <pre>{@code
      * attribute_info {
      *     u2 attribute_name_index;// = nameIndex
      *     u4 attribute_length;    // = 2
      *     u2 value;               // = (value & 0xFFFF)
-     * }</pre>
+     * }}</pre>
      *
      * @param nameIndex index of a {@code CONSTANT_Utf8_info} entry which represents the attribute name
      * @param value the attribute value (only the low 16 bits are stored)
@@ -63,11 +63,11 @@ public interface IRawAttributable {
      * Visits an empty attribute with no payload (e.g. {@code Deprecated}).
      * <br>
      * The resulting attribute structure is:
-     * <pre class="screen">
+     * <pre>{@code
      * attribute_info {
      *     u2 attribute_name_index;// = nameIndex
      *     u4 attribute_length;    // = 0
-     * }</pre>
+     * }}</pre>
      * 
      * @param nameIndex index of a {@code CONSTANT_Utf8_info} entry which represents the attribute name
      */

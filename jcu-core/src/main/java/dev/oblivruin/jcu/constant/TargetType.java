@@ -17,194 +17,171 @@
 package dev.oblivruin.jcu.constant;
 
 /**
+ * Enumerate possible {@code target_type} values for TypeAnnotation as defined in JVMS.
  * <p>
  * This documentation includes content derived from the Java Virtual Machine Specification (JVMS)
  * for accuracy and completeness. Original JVMS content is copyrighted by Oracle and/or its affiliates.
  * </p>
  *
  * @author OblivRuinDev
+ * @see <a href="https://docs.oracle.com/javase/specs/jvms/se24/html/jvms-4.html#jvms-4.7.20-400">Target Type Table-A (jvms)</a>
  */
-public final class TargetType {//todo: rename for its bad name
+public final class TargetType {
     private TargetType() {}
     /**
-     * type parameter declaration of generic class or interface
-     * <br>
-     * Target info: type_parameter_target
-     * <br>
-     * Location: ClassFile
-     * <br>
-     * info structure:
-     * <pre class="screen">type_parameter_target {
-     *     u1 type_parameter_index;
-     * }</pre>
+     * For type parameter on a generic class.
+     *
+     * @targetInfo type_parameter_target
+     * @location ClassFile
      */
     public static final int CLASS_TYPE_PARA = 0x00;
     /**
-     * type parameter declaration of generic method or constructor
-     * <br>
-     * Target info: type_parameter_target
-     * <br>
-     * Location: method_info
+     * For type parameter on a generic method or constructor.
+     *
+     * @targetInfo type_parameter_target
+     * @location method_info
      */
     public static final int METHOD_TYPE_PARA = 0x01;
     /**
-     * type in extends or implements clause of class declaration (including the direct superclass or direct superinterface of an anonymous class declaration), or in extends clause of interface declaration
-     * <br>
-     * Target info: supertype_target
-     * <br>
-     * Location: ClassFile
+     * For type in an {@code extends} or {@code implements} clause of class declaration,
+     * or in the {@code extends} clause of an interface declaration.
+     * Including the direct superclass or direct superinterface of an anonymous class declaration.
+     *
+     * @targetInfo supertype_target
+     * @location ClassFile
      */
-    public static final int SUPER_TYPE = 0x10;
+    public static final int SUPER_TYPE = 0x10;//todo: may rename
     /**
-     * type in bound of type parameter declaration of generic class or interface
-     * <br>
-     * Target info: type_parameter_bound_target
-     * <br>
-     * Location: ClassFile
+     * For bound of a type parameter on a generic class.
+     *
+     * @targetInfo type_parameter_bound_target
+     * @location ClassFile
      */
     public static final int CLASS_TYPE_PARA_BOUND = 0x11;
     /**
-     * type in bound of type parameter declaration of generic method or constructor
-     * <br>
-     * Target info: type_parameter_bound_target
-     * <br>
-     * Location: method_info
+     * For bound of a type parameter on a generic method or constructor.
+     *
+     * @targetInfo type_parameter_bound_target
+     * @location method_info
      */
     public static final int METHOD_TYPE_PARA_BOUND = 0x12;
     /**
-     * type in field or record component declaration
-     * <br>
-     * Target info: empty_target
-     * <br>
-     * Location: field_info, record_component_info
+     * For field or record component.
+     *
+     * @targetInfo empty_target
+     * @location field_info, record_component_info
      */
     public static final int FIELD = 0x13;
     /**
-     * return type of method, or type of newly constructed object
-     * <br>
-     * Target info: empty_target
-     * <br>
-     * Location: method_info
+     * For the return type on a method or newly constructed object.
+     *
+     * @targetInfo empty_target
+     * @location method_info
      */
     public static final int RET_TYPE = 0x14;
     /**
-     * receiver type of method or constructor
-     * <br>
-     * Target info: empty_target
-     * <br>
-     * Location: method_info
+     * For the receiver type of method or constructor.
+     *
+     * @targetInfo empty_target
+     * @location method_info
      */
     public static final int RECV_TYPE = 0x15;
     /**
-     * type in formal parameter declaration of method, constructor, or lambda expression
-     * <br>
-     * Target info: formal_parameter_target
-     * <br>
-     * Location: method_info
+     * For type in a formal parameter declaration of method, constructor, or lambda expression.
+     *
+     * @targetInfo formal_parameter_target
+     * @location method_info
      */
     public static final int FORMAL_PARA = 0x16;
     /**
-     * type in {@code throws} clause of method or constructor
-     * <br>
-     * Target info: throws_target
-     * <br>
-     * Location: method_info
+     * For {@code throws} clause in a method or constructor declaration.
+     *
+     * @targetInfo throws_target
+     * @location method_info
      */
     public static final int THROWS = 0x17;
     /**
-     * type in local variable declaration
-     * <br>
-     * Target info: localvar_target
-     * <br>
-     * Location: Code
+     * For local variable.
+     *
+     * @targetInfo localvar_target
+     * @location Code
      */
     public static final int LOCAL_VAR = 0x40;
     /**
-     * type in resource variable declaration
-     * <br>
-     * Target info: localvar_target
-     * <br>
-     * Location: Code
+     * For resource variable declaration of a try-with-resources statement.
+     *
+     * @targetInfo localvar_target
+     * @location Code
      */
     public static final int RES_VAR = 0x41;
     /**
-     * type in exception parameter declaration
-     * <br>
-     * Target info: catch_target
-     * <br>
-     * Location: Code
+     * For exception parameter.
+     *
+     * @targetInfo catch_target
+     * @location Code
      */
     public static final int EXCEPTION_PARA = 0x42;
     /**
-     * type in {@code instanceof} expression
-     * <br>
-     * Target info: offset_target
-     * <br>
-     * Location: Code
+     * For {@code instanceof} expression.
+     *
+     * @targetInfo offset_target
+     * @location Code
      */
     public static final int INSTANCEOF = 0x43;
     /**
-     * type in {@code new} expression
-     * <br>
-     * Target info: offset_target
-     * <br>
-     * Location: Code
+     * For {@code new} expression.
+     *
+     * @targetInfo offset_target
+     * @location Code
      */
     public static final int NEW = 0x44;
     /**
-     * type in method reference expression using {@code ::new}
-     * <br>
-     * Target info: offset_target
-     * <br>
-     * Location: Code
+     * For constructor reference expression like {@code Object::new}.
+     *
+     * @targetInfo offset_target
+     * @location Code
      */
     public static final int CONSTRUCTOR_REF = 0x45;
     /**
-     * type in method reference expression using {@code ::Identifier}
-     * <br>
-     * Target info: offset_target
-     * <br>
-     * Location: Code
+     * For method reference expression like {@code Foo::method}.
+     *
+     * @targetInfo offset_target
+     * @location Code
      */
     public static final int METHOD_REF = 0x46;
     /**
-     * type in cast expression
-     * <br>
-     * Target info: type_argument_target
-     * <br>
-     * Location: Code
+     * For typecast expression
+     *
+     * @targetInfo type_argument_target
+     * @location Code
      */
     public static final int CAST = 0x47;
     /**
-     * type argument for generic constructor in {@code new} expression or explicit constructor invocation statement
-     * <br>
-     * Target info: type_argument_target
-     * <br>
-     * Location: Code
+     * For type argument in a generic constructor invocation expression.
+     *
+     * @targetInfo type_argument_target
+     * @location Code
      */
     public static final int CONSTRUCTOR_INVOKE_TYPE_ARG = 0x48;
     /**
-     * type argument for generic method in method invocation expression
-     * <br>
-     * Target info: type_argument_target
-     * <br>
-     * Location: Code
+     * For type argument in a generic method invocation expression.
+     *
+     * @targetInfo type_argument_target
+     * @location Code
      */
     public static final int METHOD_INVOKE_TYPE_ARG = 0x49;
     /**
-     * type argument for generic constructor in method reference expression using {@code ::new}
-     * <br>
-     * Target info: type_argument_target
-     * <br>
-     * Location: Code
+     * For type argument on a generic constructor reference expression.
+     *
+     * @targetInfo type_argument_target
+     * @location Code
      */
     public static final int CONSTRUCTOR_REF_TYPE_ARG = 0x4A;
     /**
-     * type argument for generic method in method reference expression using {@code ::Identifier}
-     * <br>
-     * Target info: type_argument_target
-     * <br>
-     * Location: Code
+     * For type argument on a generic method reference expression.
+     *
+     * @targetInfo type_argument_target
+     * @location Code
      */
     public static final int METHOD_REF_TYPE_ARG = 0x4B;
 }

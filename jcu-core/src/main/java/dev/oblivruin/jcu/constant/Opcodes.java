@@ -1000,6 +1000,7 @@ public final class Opcodes { private Opcodes() {}
     public static final int INVOKEINTERFACE = 185;
     /**
      * Invoke dynamic method
+     * @since 1.7
      */
     public static final int INVOKEDYNAMIC = 186;
     /**

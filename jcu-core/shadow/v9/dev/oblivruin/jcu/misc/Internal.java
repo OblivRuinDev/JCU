@@ -34,12 +34,13 @@ public final class Internal {
             Module self = Internal.class.getModule();
             ClassLoader loader = Internal.class.getClassLoader();
             PermissionCollection perm = Internal.class.getProtectionDomain().getPermissions();
+            URL url = Internal.class.getProtectionDomain().getCodeSource().getLocation();
             MethodHandle handle = lookup.findVirtual(ClassLoader.class, "defineClass",
                     MethodType.methodType(Class.class, new Class[]{String.class, byte[].class, int.class, int.class, ProtectionDomain.class}));
             if (java.isExported("jdk.internal.misc", self)) {
-                doLoad(loader, handle, perm, "dev.oblivruin.jcu.internal.BytesUtil", "/fastC/BytesUtil$$$$9");
+                doLoad(loader, url, handle, perm, "dev.oblivruin.jcu.internal.BytesUtil", "/fastC/BytesUtil$$$$9");
             }
-            doLoad(loader, handle, perm, "dev.oblivruin.jcu.internal.Strings", "/fastC/Strings$$$$9");
+            doLoad(loader, url, handle, perm, "dev.oblivruin.jcu.internal.Strings", "/fastC/Strings$$$$9");
 
         } catch (ReflectiveOperationException ex) {
             ex.printStackTrace(System.err);
@@ -47,14 +48,13 @@ public final class Internal {
     }
 
     @SuppressWarnings("DataFlowIssue")
-    private static void doLoad(ClassLoader loader, MethodHandle handle, PermissionCollection perm , String className, String resName) {
-        URL url = Internal.class.getResource(resName);
-        try (InputStream in = url.openStream()) {
+    private static void doLoad(ClassLoader loader, URL u1, MethodHandle handle, PermissionCollection perm , String className, String resName) {
+        try (InputStream in = Internal.class.getResource(resName).openStream()) {
             ByteArrayOutputStream reader = new ByteArrayOutputStream(in.available());
             in.transferTo(reader);
             byte[] bytes = reader.toByteArray();
             Class<?> ignored = (Class<?>) handle.invokeExact(loader, className, bytes, 0, bytes.length,
-                    new ProtectionDomain(new CodeSource(url, (CodeSigner[]) null), perm, loader, null));
+                    new ProtectionDomain(new CodeSource(u1, (CodeSigner[]) null), perm, loader, null));
         } catch (VirtualMachineError vmError) {
             throw vmError;
         } catch (Throwable ex) {

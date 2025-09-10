@@ -54,12 +54,12 @@ public class ClassFileWriter implements IRawClassVisitor, IConstantPool {//todo:
 
     /**
      * The data structure is:
-     * <pre class="screen">
+     * <pre>{@code
      * u4       magic;
      * u2       minor_version;
      * u2       major_version;
      * u2       constant_pool_count;
-     * cp_info  constant_pool[constant_pool_count-1];</pre>
+     * cp_info  constant_pool[constant_pool_count-1];}</pre>
      */
     protected final ByteArray head = new ByteArray() {
         @Override
@@ -69,14 +69,14 @@ public class ClassFileWriter implements IRawClassVisitor, IConstantPool {//todo:
     };
     /**
      * The data structure is:
-     * <pre class="screen">
-     * u2           access_flags;
-     * u2           this_class;
-     * u2           super_class;
-     * u2           interfaces_count;
-     * u2           interfaces[interfaces_count];
-     * u2           fields_count;
-     * field_info   fields[fields_count];</pre>
+     * <pre>{@code
+     * u2          access_flags;
+     * u2          this_class;
+     * u2          super_class;
+     * u2          interfaces_count;
+     * u2          interfaces[interfaces_count];
+     * u2          fields_count;
+     * field_info  fields[fields_count];}</pre>
      */
     protected final ByteArray body = new ByteArray(75);
     /** The value of {@code fields_count}. */
@@ -86,7 +86,7 @@ public class ClassFileWriter implements IRawClassVisitor, IConstantPool {//todo:
     /**
      * The data structure is:
      * <pre class="screen">
-     * method_info   methods[methods_count];</pre>
+     * method_info   methods[{@link #countM}];</pre>
      */
     protected final ByteArray meth = new ByteArray(0) {
         @Override
@@ -99,7 +99,7 @@ public class ClassFileWriter implements IRawClassVisitor, IConstantPool {//todo:
     /**
      * The data structure is:
      * <pre class="screen">
-     * attribute_info  attributes[attribute_count];</pre>
+     * attribute_info  attributes[{@link #countA}];</pre>
      */
     protected final ByteArray attr = new ByteArray(100);
 

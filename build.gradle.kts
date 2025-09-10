@@ -24,7 +24,11 @@ import java.net.URL
 import java.net.URLClassLoader
 import java.nio.file.Files
 import java.util.*
+import java.util.function.BiConsumer
 import java.util.function.Consumer
+import kotlin.collections.ArrayList
+import kotlin.collections.HashMap
+import kotlin.reflect.jvm.internal.impl.util.ArrayMap
 
 plugins {
     `java-platform`
@@ -52,6 +56,128 @@ subprojects {
         targetCompatibility = JavaVersion.VERSION_1_8
     }
 }
+
+fun addProject(name: String, description: String, packages: Array<String>, requires: Array<Project> = emptyArray(), vers: IntArray = intArrayOf()) =
+    project(":jcu-$name") {
+        this.description = description
+        val groupName = "dev.oblivruin.jcu.$name"
+        group = groupName
+        BuildTool.projectList.add(groupName)
+
+        for (dependency in requires) {
+            var v = BuildTool.dependMap[dependency]
+            if (v == null) {
+                v = ArrayList()
+                BuildTool.dependMap[dependency] = v
+            }
+            v.add(this)
+        }
+
+        dependencies {
+            val testRuntimeOnly by configurations
+            val testImplementation by configurations
+
+            testImplementation(project(":test-tool"))
+            testImplementation(platform("org.junit:junit-bom:5.13.4"))
+            testImplementation("org.junit.jupiter:junit-jupiter")
+            testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+
+            api(project(":build-api"))
+
+            for (project in requires) {
+                api(project)
+            }
+        }
+
+        tasks.named<Test>("test") {
+            useJUnitPlatform()
+            maxParallelForks = 8
+        }
+
+        val rename = tasks.register<Rename>("rename") {
+            inputs.files(project.layout.buildDirectory.dir("classes/java/main").get().asFileTree.matching {
+                include("**/*\$\$\$\$*.class")
+            })
+            mustRunAfter("compileJava")
+        }
+
+        val taskJar = tasks.named<Jar>("jar") {
+            isPreserveFileTimestamps = false
+
+            manifest {
+                attributes["Implementation-Version"] = project.version
+                attributes["Implementation-Title"] = project.name.uppercase()
+                if (vers.isNotEmpty()) {
+                    attributes["Multi-Release"] = "true"
+                }
+            }
+
+            exclude("**/*\$\$\$\$*.class")
+            from(rename.get().outputs) {
+                into("fastC/")
+            }
+        }
+
+        tasks.named("classes") {
+            finalizedBy(rename)
+        }
+
+        val taskModInf = tasks.register<ModuleInfoTask>("genModuleInfo") {
+            moduleName = groupName
+            moduleVer = project.version.toString()
+            pkg = packages
+            for (re in requires) {
+                this.requires.add(re.group.toString())
+            }
+            defOutput()
+            appendOutput(taskJar)
+        }
+
+        val taskJarIndex = tasks.register<JarIndexTask>("genJarIndex") {
+            this.packages = packages
+            jarName = taskJar.get().archiveFileName
+            defOutput()
+            appendOutput(taskJar, "META-INF/")
+        }
+
+        taskJar.configure {
+            dependsOn(taskModInf, taskJarIndex)
+        }
+
+        // shadow class source set for multiple version
+        for (ver in vers) {
+            sourceSets.create("v$ver") {
+                java.srcDir("shadow/v$ver")
+                dependencies {
+                    val lib = rootProject.file("lib/jdk/$ver")
+                    if (lib.exists() && lib.isDirectory) {
+                        add("v${ver}Implementation", files(lib))
+                    }
+                    add("v${ver}Implementation", this@project)
+                }
+                val compTask = tasks.named<JavaCompile>("compileV${ver}Java") {
+                    val v = JavaVersion.toVersion(ver).toString()
+                    sourceCompatibility = v
+                    targetCompatibility = v
+                    options.compilerArgs.add("--add-exports=java.base/jdk.internal.access=ALL-UNNAMED")
+                    options.compilerArgs.add("--add-exports=java.base/jdk.internal.misc=ALL-UNNAMED")
+                    options.compilerArgs.add("--add-exports=java.base/jdk.internal.vm.annotation=ALL-UNNAMED")
+                }
+                taskJar.configure {
+                    dependsOn(compTask)
+                    from(output) {
+                        into("META-INF/versions/$ver")
+                    }
+                }
+                rename.configure {
+                    mustRunAfter(compTask)
+                    inputs.files(compTask.get().outputs.files.asFileTree.matching {
+                        include("**/*\$\$\$\$*.class")
+                    })
+                }
+            }
+        }
+    }
 
 project(":build-api") {
     description = "Api for custom build"
@@ -119,9 +245,25 @@ project(":build-tool") {
     BuildTool.register(this)
 }
 
+tasks.create<Jar>("bom-jar") {
+    dependsOn(":build-tool:compileJava")
+    isPreserveFileTimestamps = false
+    inputs.property("version", version)
+    archiveBaseName = "jcu-bom"
+    group = "build"
+
+    val moduleInf = project.layout.buildDirectory.dir("generated/module").get().file("module-info.class")
+    from(moduleInf)
+    doFirst {
+        BuildTool.loader.findClass("dev.oblivruin.jcu.builds.ModuleBom").getConstructor(Class.forName("java.lang.String"), ArrayList::class.java, Class.forName("java.io.File"))
+            .newInstance(inputs.properties["version"], BuildTool.projectList, moduleInf.asFile)
+    }
+}
+
 fun Project.set(packages: Array<String>, vararg requires: Project) = set(packages, requires)
 
 fun Project.set(packages: Array<String>, requires: Array<out Project> = emptyArray(), vararg vers: Int) {
+    BuildTool.projectList.add(group.toString())
     dependencies {
         val testRuntimeOnly by configurations
         val testImplementation by configurations
@@ -296,7 +438,7 @@ abstract class JarIndexTask: SingleFileBuildTask() {
 }
 
 @CacheableTask
-abstract class ModuleInfoTask: SingleFileBuildTask() {
+abstract class ModuleInfoTask: SingleFileBuildTask() {//todo: migrate to build-tool for custom build
     @get:Input
     abstract val moduleName: Property<String>
 
@@ -417,6 +559,9 @@ abstract class ModuleInfoTask: SingleFileBuildTask() {
 
 class BuildTool private constructor(): URLClassLoader(emptyArray(), BuildTool::class.java.classLoader) {
     companion object {
+        val projectList = ArrayList<String>()
+        val dependMap = HashMap<Project, ArrayList<Project>>(10, 1F)
+
         init {
             ClassLoader.registerAsParallelCapable()
         }
@@ -429,6 +574,15 @@ class BuildTool private constructor(): URLClassLoader(emptyArray(), BuildTool::c
 
         val renameC by lazy {
             loader.findClass("dev.oblivruin.jcu.builds.Rename").getConstructor(File::class.java) as Constructor<Consumer<File>>
+        }
+
+        private val genModuleInf by lazy {
+            // 1st arg: Array: [File(output), String(name), String(version), Array<String> requires, Array<String> packages]
+            loader.findClass("dev.oblivruin.jcu.builds.ModuleGen").getConstructor(ArrayList::class.java).newInstance(projectList) as Consumer<Array<Any?>>
+        }
+
+        fun genModuleInf(output: File, name: String, version: String?, require: Array<String>? = null, packages: Array<String>) {
+            genModuleInf.accept(arrayOf(output, name, version, require, packages))
         }
 
         fun register(project: Project) {
@@ -444,10 +598,8 @@ class BuildTool private constructor(): URLClassLoader(emptyArray(), BuildTool::c
 @Suppress("LeakingThis")
 abstract class BuildToolTask: BuildTask() {
     init {
-        dependsOn(compileTask("jcu-core"), compileTask("jcu-common"), compileTask("build-tool"))
+        dependsOn(":jcu-core:compileJava", ":jcu-common:compileJava", ":build-tool:compileJava")
     }
-
-    fun compileTask(project: String) = this.project.rootProject.project(project).tasks.findByName("compileJava")
 }
 
 @CacheableTask
